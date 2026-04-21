@@ -12,6 +12,9 @@ public class Photo {
     private Long id;
 
     @Column(nullable = false)
+    private String ownerId;
+
+    @Column(nullable = false)
     private String originalName;
 
     @Column(nullable = false, unique = true, length = 500)
@@ -25,6 +28,9 @@ public class Photo {
 
     @Column(nullable = false)
     private LocalDateTime createdAt;
+
+    @Column(nullable = false)
+    private String folderPath;
 
     private Integer width;
 
@@ -40,22 +46,26 @@ public class Photo {
     }
 
     public Photo(
+            String ownerId,
             String originalName,
             String storageKey,
             String contentType,
             Long fileSize,
             LocalDateTime createdAt,
+            String folderPath,
             Integer width,
             Integer height,
             LocalDateTime takenAt,
             String cameraModel,
             Integer iso
     ) {
+        this.ownerId = ownerId;
         this.originalName = originalName;
         this.storageKey = storageKey;
         this.contentType = contentType;
         this.fileSize = fileSize;
         this.createdAt = createdAt;
+        this.folderPath = folderPath;
         this.width = width;
         this.height = height;
         this.takenAt = takenAt;
@@ -65,6 +75,10 @@ public class Photo {
 
     public Long getId() {
         return id;
+    }
+
+    public String getOwnerId() {
+        return ownerId;
     }
 
     public String getOriginalName() {
@@ -85,6 +99,10 @@ public class Photo {
 
     public LocalDateTime getCreatedAt() {
         return createdAt;
+    }
+
+    public String getFolderPath() {
+        return folderPath;
     }
 
     public Integer getWidth() {

@@ -10,40 +10,9 @@ body {
 }
 
 button,
-input {
+input,
+select {
   font: inherit;
-}
-
-.app {
-  min-height: 100vh;
-  padding: 40px 20px;
-}
-
-.wrap {
-  max-width: 900px;
-  margin: 0 auto;
-  background: #fff;
-  padding: 32px;
-  border-radius: 16px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
-}
-
-h1,
-h2 {
-  margin-top: 0;
-}
-
-.row {
-  margin-bottom: 16px;
-}
-
-input[type="file"] {
-  display: block;
-  width: 100%;
-  padding: 12px;
-  border: 1px solid #ccc;
-  border-radius: 10px;
-  background: #fff;
 }
 
 button {
@@ -59,6 +28,56 @@ button {
 button:disabled {
   opacity: 0.6;
   cursor: not-allowed;
+}
+
+.app,
+.auth-page {
+  min-height: 100vh;
+  padding: 40px 20px;
+}
+
+.wrap,
+.auth-card {
+  max-width: 900px;
+  margin: 0 auto;
+  background: #fff;
+  padding: 32px;
+  border-radius: 16px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+}
+
+.auth-card {
+  max-width: 520px;
+}
+
+h1,
+h2 {
+  margin-top: 0;
+}
+
+.subtitle,
+.auth-subtitle,
+.summary {
+  color: #555;
+}
+
+.row {
+  margin-bottom: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+input[type="file"],
+input[type="text"],
+input[type="password"],
+select {
+  display: block;
+  width: 100%;
+  padding: 12px;
+  border: 1px solid #ccc;
+  border-radius: 10px;
+  background: #fff;
 }
 
 .upload-section {
@@ -138,6 +157,7 @@ button:disabled {
 .delete-btn:hover {
   background: #991b1b;
 }
+
 .card-image {
   cursor: pointer;
 }
@@ -185,4 +205,45 @@ button:disabled {
   margin-top: 16px;
   line-height: 1.7;
   word-break: break-all;
+}
+
+.top-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.user-box {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.control-box {
+  margin-top: 24px;
+  padding: 24px;
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+}
+
+.auth-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+
+.tab {
+  flex: 1;
+  background: #e5e7eb;
+  color: #111827;
+}
+
+.tab.active {
+  background: #111827;
+  color: white;
+}
+
+.auth-form {
+  margin-top: 12px;
 }

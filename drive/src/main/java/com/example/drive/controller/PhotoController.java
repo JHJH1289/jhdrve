@@ -7,6 +7,7 @@ import org.springframework.core.io.Resource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -24,26 +25,47 @@ public class PhotoController {
     }
 
     @PostMapping(value = "/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<PhotoUploadBatchResponse> upload(@RequestParam("files") MultipartFile[] files) {
-        return ResponseEntity.ok(photoService.upload(files));
+    public ResponseEntity<PhotoUploadBatchResponse> upload(
+            Authentication authentication,
+            @RequestParam(value = "folderPath", required = false) String folderPath,
+            @RequestParam("files") MultipartFile[] files
+    ) {
+        String username = authentication.getName();
+        return ResponseEntity.ok(photoService.upload(username, folderPath, files));
     }
 
     @GetMapping
-    public ResponseEntity<List<PhotoResponse>> getPhotos() {
-        return ResponseEntity.ok(photoService.getPhotos());
+    public ResponseEntity<List<PhotoResponse>> getPhotos(
+            Authentication authentication,
+            @RequestParam(value = "folderPath", required = false) String folderPath
+    ) {
+        String username = authentication.getName();
+        return ResponseEntity.ok(photoService.getPhotos(username, folderPath));
+    }
+
+    @GetMapping("/folders")
+    public ResponseEntity<List<String>> getFolders(Authentication authentication) {
+        String username = authentication.getName();
+        return ResponseEntity.ok(photoService.getFolders(username));
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Map<String, String>> delete(@PathVariable Long id) {
-        photoService.deletePhoto(id);
+    public ResponseEntity<Map<String, String>> delete(
+            Authentication authentication,
+            @PathVariable Long id
+    ) {
+        String username = authentication.getName();
+        photoService.deletePhoto(username, id);
         return ResponseEntity.ok(Map.of("message", "삭제 완료"));
     }
 
     @GetMapping("/view")
     public ResponseEntity<Resource> view(@RequestParam("key") String key) {
         Resource resource = photoService.getPhoto(key);
+        String contentType = photoService.getPhotoContentType(key);
 
         return ResponseEntity.ok()
+                .contentType(MediaType.parseMediaType(contentType))
                 .header(HttpHeaders.CONTENT_DISPOSITION, "inline")
                 .body(resource);
     }

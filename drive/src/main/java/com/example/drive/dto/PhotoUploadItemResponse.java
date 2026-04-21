@@ -5,6 +5,8 @@ import java.time.LocalDateTime;
 public class PhotoUploadItemResponse {
 
     private final Long id;
+    private final String ownerId;
+    private final String folderPath;
     private final String originalName;
     private final String storageKey;
     private final long size;
@@ -17,6 +19,8 @@ public class PhotoUploadItemResponse {
 
     public PhotoUploadItemResponse(
             Long id,
+            String ownerId,
+            String folderPath,
             String originalName,
             String storageKey,
             long size,
@@ -28,6 +32,8 @@ public class PhotoUploadItemResponse {
             Integer iso
     ) {
         this.id = id;
+        this.ownerId = ownerId;
+        this.folderPath = folderPath;
         this.originalName = originalName;
         this.storageKey = storageKey;
         this.size = size;
@@ -41,6 +47,14 @@ public class PhotoUploadItemResponse {
 
     public Long getId() {
         return id;
+    }
+
+    public String getOwnerId() {
+        return ownerId;
+    }
+
+    public String getFolderPath() {
+        return folderPath;
     }
 
     public String getOriginalName() {

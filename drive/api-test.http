@@ -1,0 +1,7 @@
+POST http://localhost:8080/api/photos/folders
+Content-Type: application/json
+
+{
+  "username": "guest",
+  "password": "1234"
+}

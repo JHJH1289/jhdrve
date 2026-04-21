@@ -1,49 +1,24 @@
-function formatFileSize(bytes) {
-  if (bytes == null || Number.isNaN(bytes)) {
-    return "-";
-  }
-
-  const mb = bytes / (1024 * 1024);
-
-  if (mb < 1) {
-    const kb = bytes / 1024;
-    return `${kb.toFixed(1)} KB`;
-  }
-
-  return `${mb.toFixed(2)} MB`;
-}
-
-function PhotoCard({ photo, onDelete, onOpen }) {
-  if (!photo) {
-    return null;
-  }
-
-  const imageSrc = `${import.meta.env.VITE_API_BASE_URL}${photo.imageUrl ?? ""}`;
-
+export default function PhotoCard({ photo, onDelete, onOpen }) {
   return (
     <div className="card">
       <img
-        src={imageSrc}
-        alt={photo.originalName ?? "photo"}
-        onClick={() => onOpen?.(photo)}
         className="card-image"
+        src={photo.imageUrl}
+        alt={photo.originalName}
+        onClick={() => onOpen(photo)}
       />
       <div className="card-body">
         <div className="name">{photo.originalName}</div>
         <div className="meta">
-          ID: {photo.id}
-          <br />
-          크기: {formatFileSize(photo.fileSize)}
-          <br />
-          업로드: {photo.createdAt}
+          <div>폴더: {photo.folderPath}</div>
+          <div>크기: {photo.fileSize} bytes</div>
+          <div>촬영일: {photo.takenAt || "-"}</div>
+          <div>업로드일: {photo.createdAt || "-"}</div>
         </div>
-
-        <button className="delete-btn" onClick={() => onDelete?.(photo.id)}>
+        <button className="delete-btn" type="button" onClick={() => onDelete(photo.id)}>
           삭제
         </button>
       </div>
     </div>
   );
 }
-
-export default PhotoCard;

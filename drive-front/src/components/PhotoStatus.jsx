@@ -1,5 +1,4 @@
-function PhotoStatus({ statusText }) {
-  return <div className="status-box">{statusText || "대기 중"}</div>;
+export default function PhotoStatus({ status }) {
+  if (!status) return null;
+  return <div className="status-box">{status}</div>;
 }
-
-export default PhotoStatus;

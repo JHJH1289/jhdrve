@@ -1,28 +1,15 @@
 import PhotoCard from "./PhotoCard";
 
-function PhotoList({ photos, onDelete, onOpen }) {
-  return (
-    <div className="gallery">
-      <h2>업로드 목록</h2>
+export default function PhotoList({ photos, onDelete, onOpen }) {
+  if (!photos || photos.length === 0) {
+    return <p>사진이 없습니다.</p>;
+  }
 
-      {!photos.length ? (
-        <p>업로드된 사진이 없습니다.</p>
-      ) : (
-        <div className="photo-list">
-          {[...photos]
-            .reverse()
-            .map((photo) => (
-              <PhotoCard
-                key={photo.id}
-                photo={photo}
-                onDelete={onDelete}
-                onOpen={onOpen}
-              />
-            ))}
-        </div>
-      )}
+  return (
+    <div className="photo-list">
+      {photos.map((photo) => (
+        <PhotoCard key={photo.id} photo={photo} onDelete={onDelete} onOpen={onOpen} />
+      ))}
     </div>
   );
 }
-
-export default PhotoList;

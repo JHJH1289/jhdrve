@@ -1,47 +1,94 @@
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "";
 
-export async function uploadPhotos(files) {
-  const formData = new FormData();
+function getToken() {
+  return localStorage.getItem("token") || "";
+}
 
-  files.forEach((file) => {
-    formData.append("files", file);
+function normalizeImageUrl(url) {
+  if (!url) return "";
+  if (url.startsWith("http://") || url.startsWith("https://")) return url;
+  return `${API_BASE_URL}${url}`;
+}
+
+async function request(url, options = {}) {
+  const token = getToken();
+
+  const headers = {
+    ...(options.headers || {}),
+  };
+
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
+  }
+
+  const response = await fetch(`${API_BASE_URL}${url}`, {
+    ...options,
+    headers,
   });
 
-  const response = await fetch(`${API_BASE_URL}/api/photos/upload`, {
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(text || `HTTP ${response.status}`);
+  }
+
+  const contentType = response.headers.get("content-type") || "";
+  if (contentType.includes("application/json")) {
+    return response.json();
+  }
+
+  return response.text();
+}
+
+export async function fetchPhotos(folderPath = "기본") {
+  const params = new URLSearchParams();
+  if (folderPath) {
+    params.set("folderPath", folderPath);
+  }
+
+  const result = await request(`/api/photos?${params.toString()}`, {
+    method: "GET",
+  });
+
+  return Array.isArray(result)
+    ? result.map((photo) => ({
+        ...photo,
+        imageUrl: normalizeImageUrl(photo.imageUrl),
+      }))
+    : [];
+}
+
+export async function fetchFolders() {
+  return request("/api/photos/folders", {
+    method: "GET",
+  });
+}
+
+export async function uploadPhotos(folderPath, files) {
+  const formData = new FormData();
+
+  files.forEach((file) => formData.append("files", file));
+
+  if (folderPath) {
+    formData.append("folderPath", folderPath);
+  }
+
+  const result = await request("/api/photos/upload", {
     method: "POST",
     body: formData,
   });
 
-  const result = await response.json();
-
-  if (!response.ok) {
-    throw new Error(result.message || "업로드 실패");
-  }
-
-  return result;
-}
-
-export async function fetchPhotos() {
-  const response = await fetch(`${API_BASE_URL}/api/photos`);
-  const result = await response.json();
-
-  if (!response.ok) {
-    throw new Error(result.message || "목록 조회 실패");
+  if (result?.items) {
+    result.items = result.items.map((item) => ({
+      ...item,
+      imageUrl: normalizeImageUrl(item.imageUrl),
+    }));
   }
 
   return result;
 }
 
 export async function deletePhoto(id) {
-  const response = await fetch(`${API_BASE_URL}/api/photos/${id}`, {
+  return request(`/api/photos/${id}`, {
     method: "DELETE",
   });
-
-  const result = await response.json();
-
-  if (!response.ok) {
-    throw new Error(result.message || "삭제 실패");
-  }
-
-  return result;
 }
