@@ -1,38 +1,33 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { deletePhoto, fetchFolders, fetchPhotos, uploadPhotos } from "../api/photoApi";
 import PhotoList from "../components/PhotoList";
-import PhotoModal from "../components/PhotoModal";
-import PhotoPreview from "../components/PhotoPreview";
 import PhotoStatus from "../components/PhotoStatus";
-import PhotoUploadForm from "../components/PhotoUploadForm";
+import UploadModal from "../components/UploadModal";
+import ImageViewerModal from "../components/ImageViewerModal";
+import FolderGrid from "../components/FolderGrid";
 
 export default function GalleryPage({ username, onLogout }) {
-  const [photos, setPhotos] = useState([]);
   const [folders, setFolders] = useState(["기본"]);
-  const [selectedFolder, setSelectedFolder] = useState("기본");
-  const [uploadFolder, setUploadFolder] = useState("기본");
-  const [sortType, setSortType] = useState("takenAtDesc");
+  const [selectedFolder, setSelectedFolder] = useState(null);
+  const [photos, setPhotos] = useState([]);
   const [status, setStatus] = useState("");
-  const [selectedPhoto, setSelectedPhoto] = useState(null);
-  const [previewFiles, setPreviewFiles] = useState([]);
+  const [uploadModalOpen, setUploadModalOpen] = useState(false);
+  const [viewerIndex, setViewerIndex] = useState(null);
 
   useEffect(() => {
     loadFolders();
   }, []);
 
   useEffect(() => {
-    loadPhotos(selectedFolder);
+    if (selectedFolder) {
+      loadPhotos(selectedFolder);
+    }
   }, [selectedFolder]);
 
   async function loadFolders() {
     try {
       const result = await fetchFolders();
-      const nextFolders = result && result.length ? result : ["기본"];
-      setFolders(nextFolders);
-
-      if (!nextFolders.includes(selectedFolder)) {
-        setSelectedFolder(nextFolders[0]);
-      }
+      setFolders(result && result.length ? result : ["기본"]);
     } catch (error) {
       setStatus(`폴더 조회 오류: ${error.message}`);
     }
@@ -49,7 +44,7 @@ export default function GalleryPage({ username, onLogout }) {
     }
   }
 
-  async function handleUpload(files) {
+  async function handleUpload(folderPath, files) {
     try {
       if (!files || files.length === 0) {
         setStatus("업로드할 파일을 선택하세요.");
@@ -57,13 +52,17 @@ export default function GalleryPage({ username, onLogout }) {
       }
 
       setStatus("업로드 중...");
-      await uploadPhotos(uploadFolder, files);
-      setPreviewFiles([]);
+      await uploadPhotos(folderPath, files);
       setStatus("업로드 완료");
+      setUploadModalOpen(false);
 
       await loadFolders();
-      await loadPhotos(uploadFolder);
-      setSelectedFolder(uploadFolder);
+
+      if (selectedFolder === folderPath) {
+        await loadPhotos(folderPath);
+      } else {
+        setSelectedFolder(folderPath);
+      }
     } catch (error) {
       setStatus(`업로드 오류: ${error.message}`);
     }
@@ -73,9 +72,12 @@ export default function GalleryPage({ username, onLogout }) {
     try {
       await deletePhoto(id);
       setStatus("삭제 완료");
+
+      if (selectedFolder) {
+        await loadPhotos(selectedFolder);
+      }
       await loadFolders();
-      await loadPhotos(selectedFolder);
-      setSelectedPhoto(null);
+      setViewerIndex(null);
     } catch (error) {
       setStatus(`삭제 오류: ${error.message}`);
     }
@@ -87,103 +89,97 @@ export default function GalleryPage({ username, onLogout }) {
     onLogout();
   }
 
-  const sortedPhotos = useMemo(() => {
-    const copied = [...photos];
+  function openViewer(index) {
+    setViewerIndex(index);
+  }
 
-    const compareDateDesc = (a, b, key) => {
-      const aValue = a[key] ? new Date(a[key]).getTime() : 0;
-      const bValue = b[key] ? new Date(b[key]).getTime() : 0;
-      return bValue - aValue;
-    };
+  function closeViewer() {
+    setViewerIndex(null);
+  }
 
-    const compareDateAsc = (a, b, key) => {
-      const aValue = a[key] ? new Date(a[key]).getTime() : 0;
-      const bValue = b[key] ? new Date(b[key]).getTime() : 0;
-      return aValue - bValue;
-    };
+  function showPrev() {
+    if (viewerIndex === null || photos.length === 0) return;
+    setViewerIndex((prev) => (prev === 0 ? photos.length - 1 : prev - 1));
+  }
 
-    switch (sortType) {
-      case "takenAtAsc":
-        return copied.sort((a, b) => compareDateAsc(a, b, "takenAt"));
-      case "createdAtDesc":
-        return copied.sort((a, b) => compareDateDesc(a, b, "createdAt"));
-      case "createdAtAsc":
-        return copied.sort((a, b) => compareDateAsc(a, b, "createdAt"));
-      case "takenAtDesc":
-      default:
-        return copied.sort((a, b) => compareDateDesc(a, b, "takenAt"));
-    }
-  }, [photos, sortType]);
+  function showNext() {
+    if (viewerIndex === null || photos.length === 0) return;
+    setViewerIndex((prev) => (prev === photos.length - 1 ? 0 : prev + 1));
+  }
 
   return (
     <div className="app">
       <div className="wrap">
         <div className="top-bar">
           <div>
-            <h1>사진 업로드 테스트</h1>
-            <p className="subtitle">React + Spring Boot + PostgreSQL 테스트</p>
+            <h1>사진 드라이브</h1>
+            <p className="subtitle">계정: {username}</p>
           </div>
+
           <div className="user-box">
-            <span>{username}</span>
+            <button type="button" onClick={() => setUploadModalOpen(true)}>
+              사진 업로드
+            </button>
             <button type="button" onClick={handleLogoutClick}>
               로그아웃
             </button>
           </div>
         </div>
 
-        <div className="control-box">
-          <div className="row">
-            <label>조회 폴더</label>
-            <select value={selectedFolder} onChange={(e) => setSelectedFolder(e.target.value)}>
-              {folders.map((folder) => (
-                <option key={folder} value={folder}>
-                  {folder}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className="row">
-            <label>정렬</label>
-            <select value={sortType} onChange={(e) => setSortType(e.target.value)}>
-              <option value="takenAtDesc">촬영일 최신순</option>
-              <option value="takenAtAsc">촬영일 오래된순</option>
-              <option value="createdAtDesc">업로드일 최신순</option>
-              <option value="createdAtAsc">업로드일 오래된순</option>
-            </select>
-          </div>
-        </div>
-
-        <div className="upload-section">
-          <div className="row">
-            <label>업로드 폴더</label>
-            <input
-              type="text"
-              value={uploadFolder}
-              onChange={(e) => setUploadFolder(e.target.value)}
-              placeholder="예: 여행/오사카"
-            />
-          </div>
-
-          <PhotoUploadForm onUpload={handleUpload} onPreviewChange={setPreviewFiles} />
-        </div>
-
         <PhotoStatus status={status} />
-        <PhotoPreview files={previewFiles} />
 
-        <div className="gallery">
-          <h2>업로드 목록</h2>
-          <p className="summary">
-            계정: <strong>{username}</strong> / 폴더: <strong>{selectedFolder}</strong>
-          </p>
-          <p className="summary">총 {sortedPhotos.length}장</p>
+        {!selectedFolder ? (
+          <>
+            <div className="section-header">
+              <h2>폴더 목록</h2>
+            </div>
 
-          <PhotoList photos={sortedPhotos} onDelete={handleDelete} onOpen={setSelectedPhoto} />
-        </div>
+            <FolderGrid
+              folders={folders}
+              onOpenFolder={setSelectedFolder}
+            />
+          </>
+        ) : (
+          <>
+            <div className="section-header">
+              <div>
+                <button
+                  type="button"
+                  className="back-btn"
+                  onClick={() => {
+                    setSelectedFolder(null);
+                    setPhotos([]);
+                  }}
+                >
+                  ← 폴더 목록
+                </button>
+                <h2>{selectedFolder}</h2>
+                <p className="summary">총 {photos.length}장</p>
+              </div>
+            </div>
 
-        <PhotoModal
-          photo={selectedPhoto}
-          onClose={() => setSelectedPhoto(null)}
+            <PhotoList
+              photos={photos}
+              onDelete={handleDelete}
+              onOpen={openViewer}
+            />
+          </>
+        )}
+
+        <UploadModal
+          open={uploadModalOpen}
+          onClose={() => setUploadModalOpen(false)}
+          onUpload={handleUpload}
+          defaultFolder={selectedFolder || "기본"}
+        />
+
+        <ImageViewerModal
+          open={viewerIndex !== null}
+          photos={photos}
+          currentIndex={viewerIndex}
+          onClose={closeViewer}
+          onPrev={showPrev}
+          onNext={showNext}
           onDelete={handleDelete}
         />
       </div>

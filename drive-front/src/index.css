@@ -247,3 +247,105 @@ select {
 .auth-form {
   margin-top: 12px;
 }
+
+.section-header {
+  margin-top: 24px;
+  margin-bottom: 20px;
+}
+
+.folder-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 16px;
+  margin-top: 20px;
+}
+
+.folder-card {
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 16px;
+  padding: 28px 20px;
+  color: #111827;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+  text-align: left;
+}
+
+.folder-card:hover {
+  border-color: #9ca3af;
+}
+
+.folder-icon {
+  font-size: 40px;
+}
+
+.folder-name {
+  font-size: 18px;
+  font-weight: 700;
+  word-break: break-all;
+}
+
+.back-btn {
+  background: #e5e7eb;
+  color: #111827;
+  margin-bottom: 12px;
+}
+
+.upload-modal-content {
+  position: relative;
+  max-width: 760px;
+  width: 100%;
+  max-height: 90vh;
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 20px;
+  overflow: auto;
+}
+
+.modal-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.viewer-modal-content {
+  position: relative;
+  max-width: 1280px;
+  width: 100%;
+  max-height: 90vh;
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 20px;
+  overflow: auto;
+}
+
+.viewer-layout {
+  display: grid;
+  grid-template-columns: 72px 1fr 72px;
+  align-items: center;
+  gap: 12px;
+}
+
+.viewer-image-wrap {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 500px;
+}
+
+.viewer-nav {
+  height: 56px;
+  width: 56px;
+  border-radius: 999px;
+  font-size: 34px;
+  line-height: 1;
+  padding: 0;
+}
+
+.viewer-nav.left,
+.viewer-nav.right {
+  justify-self: center;
+}

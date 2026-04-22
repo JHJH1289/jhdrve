@@ -7,8 +7,13 @@ export default function PhotoList({ photos, onDelete, onOpen }) {
 
   return (
     <div className="photo-list">
-      {photos.map((photo) => (
-        <PhotoCard key={photo.id} photo={photo} onDelete={onDelete} onOpen={onOpen} />
+      {photos.map((photo, index) => (
+        <PhotoCard
+          key={photo.id}
+          photo={photo}
+          onDelete={onDelete}
+          onOpen={() => onOpen(index)}
+        />
       ))}
     </div>
   );

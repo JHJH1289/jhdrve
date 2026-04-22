@@ -5,13 +5,11 @@ export default function PhotoCard({ photo, onDelete, onOpen }) {
         className="card-image"
         src={photo.imageUrl}
         alt={photo.originalName}
-        onClick={() => onOpen(photo)}
+        onClick={onOpen}
       />
       <div className="card-body">
         <div className="name">{photo.originalName}</div>
         <div className="meta">
-          <div>폴더: {photo.folderPath}</div>
-          <div>크기: {photo.fileSize} bytes</div>
           <div>촬영일: {photo.takenAt || "-"}</div>
           <div>업로드일: {photo.createdAt || "-"}</div>
         </div>
