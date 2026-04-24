@@ -64,8 +64,12 @@ public class PhotoService {
                             metadata.getWidth(),
                             metadata.getHeight(),
                             metadata.getTakenAt(),
+                            metadata.getCameraMake(),
                             metadata.getCameraModel(),
-                            metadata.getIso()
+                            metadata.getFNumber(),
+                            metadata.getExposureTime(),
+                            metadata.getIso(),
+                            metadata.getLensModel()
                     );
 
                     Photo savedPhoto = photoRepository.save(photo);
@@ -82,8 +86,12 @@ public class PhotoService {
                             savedPhoto.getWidth(),
                             savedPhoto.getHeight(),
                             savedPhoto.getTakenAt(),
+                            savedPhoto.getCameraMake(),
                             savedPhoto.getCameraModel(),
-                            savedPhoto.getIso()
+                            savedPhoto.getFNumber(),
+                            savedPhoto.getExposureTime(),
+                            savedPhoto.getIso(),
+                            savedPhoto.getLensModel()
                     );
                 })
                 .toList();
@@ -127,8 +135,12 @@ public class PhotoService {
                         photo.getWidth(),
                         photo.getHeight(),
                         photo.getTakenAt(),
+                        photo.getCameraMake(),
                         photo.getCameraModel(),
-                        photo.getIso()
+                        photo.getFNumber(),
+                        photo.getExposureTime(),
+                        photo.getIso(),
+                        photo.getLensModel()
                 ))
                 .toList();
     }
