@@ -349,3 +349,73 @@ select {
 .viewer-nav.right {
   justify-self: center;
 }
+
+.viewer-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 18px;
+  flex-wrap: wrap;
+}
+
+.viewer-delete-btn {
+  width: auto;
+  margin-top: 0;
+}
+
+.secondary-btn {
+  background: #e5e7eb;
+  color: #111827;
+}
+
+.secondary-btn:hover {
+  background: #d1d5db;
+}
+
+.preview-modal-backdrop {
+  z-index: 10001;
+}
+
+.preview-modal-content {
+  position: relative;
+  max-width: 1200px;
+  width: 100%;
+  max-height: 92vh;
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 20px;
+  overflow: auto;
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.24);
+}
+
+.preview-body {
+  margin-top: 16px;
+  min-height: 240px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 14px;
+  padding: 16px;
+}
+
+.preview-loading,
+.preview-error {
+  width: 100%;
+  text-align: center;
+  padding: 40px 20px;
+  color: #374151;
+}
+
+.preview-error {
+  color: #b91c1c;
+}
+
+.exif-preview-image {
+  max-width: 100%;
+  max-height: 72vh;
+  display: block;
+  border-radius: 12px;
+  border: 1px solid #ddd;
+  background: white;
+}
