@@ -16,6 +16,7 @@ public class PhotoUploadItemResponse {
     private final LocalDateTime takenAt;
     private final String cameraMake;
     private final String cameraModel;
+    private final String focalLength;
     private final String fNumber;
     private final String exposureTime;
     private final Integer iso;
@@ -34,6 +35,7 @@ public class PhotoUploadItemResponse {
             LocalDateTime takenAt,
             String cameraMake,
             String cameraModel,
+            String focalLength,
             String fNumber,
             String exposureTime,
             Integer iso,
@@ -51,6 +53,7 @@ public class PhotoUploadItemResponse {
         this.takenAt = takenAt;
         this.cameraMake = cameraMake;
         this.cameraModel = cameraModel;
+        this.focalLength = focalLength;
         this.fNumber = fNumber;
         this.exposureTime = exposureTime;
         this.iso = iso;
@@ -103,6 +106,10 @@ public class PhotoUploadItemResponse {
 
     public String getCameraModel() {
         return cameraModel;
+    }
+
+    public String getFocalLength() {
+        return focalLength;
     }
 
     public String getFNumber() {

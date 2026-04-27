@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
 import { deletePhoto, fetchFolders, fetchPhotos, uploadPhotos } from "../api/photoApi";
+import FolderGrid from "../components/FolderGrid";
+import ImageViewerModal from "../components/ImageViewerModal";
 import PhotoList from "../components/PhotoList";
 import PhotoStatus from "../components/PhotoStatus";
 import UploadModal from "../components/UploadModal";
-import ImageViewerModal from "../components/ImageViewerModal";
-import FolderGrid from "../components/FolderGrid";
 
 export default function GalleryPage({ username, onLogout }) {
   const [folders, setFolders] = useState(["기본"]);
@@ -74,10 +74,19 @@ export default function GalleryPage({ username, onLogout }) {
       setStatus("삭제 완료");
 
       if (selectedFolder) {
-        await loadPhotos(selectedFolder);
+        const nextPhotos = photos.filter((photo) => photo.id !== id);
+        setPhotos(nextPhotos);
+
+        if (viewerIndex !== null) {
+          if (nextPhotos.length === 0) {
+            setViewerIndex(null);
+          } else if (viewerIndex >= nextPhotos.length) {
+            setViewerIndex(nextPhotos.length - 1);
+          }
+        }
       }
+
       await loadFolders();
-      setViewerIndex(null);
     } catch (error) {
       setStatus(`삭제 오류: ${error.message}`);
     }
@@ -133,36 +142,27 @@ export default function GalleryPage({ username, onLogout }) {
             <div className="section-header">
               <h2>폴더 목록</h2>
             </div>
-
-            <FolderGrid
-              folders={folders}
-              onOpenFolder={setSelectedFolder}
-            />
+            <FolderGrid folders={folders} onOpenFolder={setSelectedFolder} />
           </>
         ) : (
           <>
             <div className="section-header">
-              <div>
-                <button
-                  type="button"
-                  className="back-btn"
-                  onClick={() => {
-                    setSelectedFolder(null);
-                    setPhotos([]);
-                  }}
-                >
-                  ← 폴더 목록
-                </button>
-                <h2>{selectedFolder}</h2>
-                <p className="summary">총 {photos.length}장</p>
-              </div>
+              <button
+                type="button"
+                className="back-btn"
+                onClick={() => {
+                  setSelectedFolder(null);
+                  setPhotos([]);
+                  setViewerIndex(null);
+                }}
+              >
+                ← 폴더 목록
+              </button>
+              <h2>{selectedFolder}</h2>
+              <p className="summary">총 {photos.length}장</p>
             </div>
 
-            <PhotoList
-              photos={photos}
-              onDelete={handleDelete}
-              onOpen={openViewer}
-            />
+            <PhotoList photos={photos} onDelete={handleDelete} onOpen={openViewer} />
           </>
         )}
 

@@ -26,6 +26,12 @@ export default function ImageViewerModal({
 
   const photo = photos[currentIndex];
 
+  const fNumber =
+    photo.fNumber ??
+    photo.fnumber ??
+    photo.FNumber ??
+    "-";
+
   return (
     <div className="photo-modal-backdrop" onClick={onClose}>
       <div className="viewer-modal-content" onClick={(e) => e.stopPropagation()}>
@@ -50,11 +56,15 @@ export default function ImageViewerModal({
         <div className="photo-modal-info">
           <div><strong>파일명:</strong> {photo.originalName}</div>
           <div><strong>폴더:</strong> {photo.folderPath}</div>
-          <div><strong>용량:</strong> {photo.fileSize} bytes</div>
+          <div><strong>카메라 제조업체:</strong> {photo.cameraMake || "-"}</div>
+          <div><strong>카메라 모델:</strong> {photo.cameraModel || "-"}</div>
+          <div><strong>초점거리:</strong> {photo.focalLength || "-"}</div>
+          <div><strong>F-스톱:</strong> {fNumber}</div>
+          <div><strong>노출시간:</strong> {photo.exposureTime || "-"}</div>
+          <div><strong>ISO 감도:</strong> {photo.iso || "-"}</div>
+          <div><strong>렌즈 모델:</strong> {photo.lensModel || "-"}</div>
           <div><strong>촬영일:</strong> {photo.takenAt || "-"}</div>
           <div><strong>업로드일:</strong> {photo.createdAt || "-"}</div>
-          <div><strong>카메라:</strong> {photo.cameraModel || "-"}</div>
-          <div><strong>ISO:</strong> {photo.iso || "-"}</div>
           <div><strong>해상도:</strong> {photo.width || "-"} x {photo.height || "-"}</div>
         </div>
 

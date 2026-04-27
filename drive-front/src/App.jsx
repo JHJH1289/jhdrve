@@ -6,10 +6,10 @@ export default function App() {
   const [username, setUsername] = useState(null);
 
   useEffect(() => {
-    const savedToken = localStorage.getItem("token");
+    const token = localStorage.getItem("token");
     const savedUsername = localStorage.getItem("username");
 
-    if (savedToken && savedUsername) {
+    if (token && savedUsername) {
       setUsername(savedUsername);
     }
   }, []);
@@ -19,6 +19,8 @@ export default function App() {
   }
 
   function handleLogout() {
+    localStorage.removeItem("token");
+    localStorage.removeItem("username");
     setUsername(null);
   }
 

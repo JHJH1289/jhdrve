@@ -24,10 +24,8 @@ export default function LoginPage({ onLoginSuccess }) {
         setMode("login");
       } else {
         const result = await login(username.trim(), password);
-
         localStorage.setItem("token", result.token);
         localStorage.setItem("username", result.username);
-
         onLoginSuccess(result.username);
       }
     } catch (error) {
@@ -40,7 +38,7 @@ export default function LoginPage({ onLoginSuccess }) {
   return (
     <div className="auth-page">
       <div className="auth-card">
-        <h1>JH-Drive</h1>
+        <h1>사진 드라이브</h1>
         <p className="auth-subtitle">로그인 후 사진 갤러리를 사용할 수 있습니다.</p>
 
         <div className="auth-tabs">
@@ -60,7 +58,7 @@ export default function LoginPage({ onLoginSuccess }) {
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="auth-form">
+        <form className="auth-form" onSubmit={handleSubmit}>
           <label className="row">
             <span>아이디</span>
             <input

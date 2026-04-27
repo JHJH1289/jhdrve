@@ -10,6 +10,7 @@ public class PhotoMetadata {
 
     private final String cameraMake;
     private final String cameraModel;
+    private final String focalLength;
     private final String fNumber;
     private final String exposureTime;
     private final Integer iso;
@@ -21,6 +22,7 @@ public class PhotoMetadata {
             LocalDateTime takenAt,
             String cameraMake,
             String cameraModel,
+            String focalLength,
             String fNumber,
             String exposureTime,
             Integer iso,
@@ -31,6 +33,7 @@ public class PhotoMetadata {
         this.takenAt = takenAt;
         this.cameraMake = cameraMake;
         this.cameraModel = cameraModel;
+        this.focalLength = focalLength;
         this.fNumber = fNumber;
         this.exposureTime = exposureTime;
         this.iso = iso;
@@ -55,6 +58,10 @@ public class PhotoMetadata {
 
     public String getCameraModel() {
         return cameraModel;
+    }
+
+    public String getFocalLength() {
+        return focalLength;
     }
 
     public String getFNumber() {

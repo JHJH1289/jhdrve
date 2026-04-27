@@ -52,7 +52,7 @@ public class PhotoController {
     @DeleteMapping("/{id}")
     public ResponseEntity<Map<String, String>> delete(
             Authentication authentication,
-            @PathVariable Long id
+            @PathVariable("id") Long id
     ) {
         String username = authentication.getName();
         photoService.deletePhoto(username, id);

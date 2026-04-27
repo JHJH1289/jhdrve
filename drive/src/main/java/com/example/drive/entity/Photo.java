@@ -33,9 +33,7 @@ public class Photo {
     private String folderPath;
 
     private Integer width;
-
     private Integer height;
-
     private LocalDateTime takenAt;
 
     @Column(length = 100)
@@ -43,6 +41,9 @@ public class Photo {
 
     @Column(length = 200)
     private String cameraModel;
+
+    @Column(length = 50)
+    private String focalLength;
 
     @Column(length = 50)
     private String fNumber;
@@ -71,6 +72,7 @@ public class Photo {
             LocalDateTime takenAt,
             String cameraMake,
             String cameraModel,
+            String focalLength,
             String fNumber,
             String exposureTime,
             Integer iso,
@@ -88,6 +90,7 @@ public class Photo {
         this.takenAt = takenAt;
         this.cameraMake = cameraMake;
         this.cameraModel = cameraModel;
+        this.focalLength = focalLength;
         this.fNumber = fNumber;
         this.exposureTime = exposureTime;
         this.iso = iso;
@@ -144,6 +147,10 @@ public class Photo {
 
     public String getCameraModel() {
         return cameraModel;
+    }
+
+    public String getFocalLength() {
+        return focalLength;
     }
 
     public String getFNumber() {
