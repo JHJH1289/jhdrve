@@ -66,79 +66,23 @@ public class PhotoResponse {
         this.lensModel = lensModel;
     }
 
-    public Long getId() {
-        return id;
-    }
-
-    public String getOwnerId() {
-        return ownerId;
-    }
-
-    public String getFolderPath() {
-        return folderPath;
-    }
-
-    public String getOriginalName() {
-        return originalName;
-    }
-
-    public String getStorageKey() {
-        return storageKey;
-    }
-
-    public String getContentType() {
-        return contentType;
-    }
-
-    public long getFileSize() {
-        return fileSize;
-    }
-
-    public String getImageUrl() {
-        return imageUrl;
-    }
-
-    public LocalDateTime getCreatedAt() {
-        return createdAt;
-    }
-
-    public Integer getWidth() {
-        return width;
-    }
-
-    public Integer getHeight() {
-        return height;
-    }
-
-    public LocalDateTime getTakenAt() {
-        return takenAt;
-    }
-
-    public String getCameraMake() {
-        return cameraMake;
-    }
-
-    public String getCameraModel() {
-        return cameraModel;
-    }
-
-    public String getFocalLength() {
-        return focalLength;
-    }
-
-    public String getFNumber() {
-        return fNumber;
-    }
-
-    public String getExposureTime() {
-        return exposureTime;
-    }
-
-    public Integer getIso() {
-        return iso;
-    }
-
-    public String getLensModel() {
-        return lensModel;
-    }
+    public Long getId() { return id; }
+    public String getOwnerId() { return ownerId; }
+    public String getFolderPath() { return folderPath; }
+    public String getOriginalName() { return originalName; }
+    public String getStorageKey() { return storageKey; }
+    public String getContentType() { return contentType; }
+    public long getFileSize() { return fileSize; }
+    public String getImageUrl() { return imageUrl; }
+    public LocalDateTime getCreatedAt() { return createdAt; }
+    public Integer getWidth() { return width; }
+    public Integer getHeight() { return height; }
+    public LocalDateTime getTakenAt() { return takenAt; }
+    public String getCameraMake() { return cameraMake; }
+    public String getCameraModel() { return cameraModel; }
+    public String getFocalLength() { return focalLength; }
+    public String getFNumber() { return fNumber; }
+    public String getExposureTime() { return exposureTime; }
+    public Integer getIso() { return iso; }
+    public String getLensModel() { return lensModel; }
 }

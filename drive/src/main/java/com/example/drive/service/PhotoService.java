@@ -13,8 +13,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.Comparator;
@@ -74,7 +72,6 @@ public class PhotoService {
                     );
 
                     Photo savedPhoto = photoRepository.save(photo);
-                    String imageUrl = buildImageUrl(savedPhoto.getStorageKey());
 
                     return new PhotoUploadItemResponse(
                             savedPhoto.getId(),
@@ -83,7 +80,7 @@ public class PhotoService {
                             savedPhoto.getOriginalName(),
                             savedPhoto.getStorageKey(),
                             savedPhoto.getFileSize(),
-                            imageUrl,
+                            buildImageUrl(savedPhoto.getId()),
                             savedPhoto.getWidth(),
                             savedPhoto.getHeight(),
                             savedPhoto.getTakenAt(),
@@ -105,14 +102,24 @@ public class PhotoService {
         return new PhotoUploadBatchResponse(items.size(), items);
     }
 
-    public Resource getPhoto(String storageKey) {
-        return storageService.loadAsResource(storageKey);
+    public Resource getPhotoById(String ownerId, Long id) {
+        validateOwnerId(ownerId);
+
+        Photo photo = photoRepository.findByIdAndOwnerId(id, ownerId.trim())
+                .orElseThrow(() -> new IllegalArgumentException("해당 사진이 존재하지 않습니다. id=" + id));
+
+        return storageService.loadAsResource(photo.getStorageKey());
     }
 
-    public String getPhotoContentType(String storageKey) {
-        return photoRepository.findByStorageKey(storageKey)
-                .map(Photo::getContentType)
-                .orElse(MediaType.APPLICATION_OCTET_STREAM_VALUE);
+    public String getPhotoContentTypeById(String ownerId, Long id) {
+        validateOwnerId(ownerId);
+
+        Photo photo = photoRepository.findByIdAndOwnerId(id, ownerId.trim())
+                .orElseThrow(() -> new IllegalArgumentException("해당 사진이 존재하지 않습니다. id=" + id));
+
+        return photo.getContentType() != null
+                ? photo.getContentType()
+                : MediaType.APPLICATION_OCTET_STREAM_VALUE;
     }
 
     public List<PhotoResponse> getPhotos(String ownerId, String folderPath) {
@@ -132,7 +139,7 @@ public class PhotoService {
                         photo.getStorageKey(),
                         photo.getContentType(),
                         photo.getFileSize(),
-                        buildImageUrl(photo.getStorageKey()),
+                        buildImageUrl(photo.getId()),
                         photo.getCreatedAt(),
                         photo.getWidth(),
                         photo.getHeight(),
@@ -176,9 +183,8 @@ public class PhotoService {
                 .thenComparing(Photo::getId, Comparator.reverseOrder());
     }
 
-    private String buildImageUrl(String storageKey) {
-        String encodedKey = URLEncoder.encode(storageKey, StandardCharsets.UTF_8);
-        return "/api/photos/view?key=" + encodedKey;
+    private String buildImageUrl(Long photoId) {
+        return "/api/photos/view/" + photoId;
     }
 
     private void validateOwnerId(String ownerId) {

@@ -59,10 +59,14 @@ public class PhotoController {
         return ResponseEntity.ok(Map.of("message", "삭제 완료"));
     }
 
-    @GetMapping("/view")
-    public ResponseEntity<Resource> view(@RequestParam("key") String key) {
-        Resource resource = photoService.getPhoto(key);
-        String contentType = photoService.getPhotoContentType(key);
+    @GetMapping("/view/{id}")
+    public ResponseEntity<Resource> view(
+            Authentication authentication,
+            @PathVariable("id") Long id
+    ) {
+        String username = authentication.getName();
+        Resource resource = photoService.getPhotoById(username, id);
+        String contentType = photoService.getPhotoContentTypeById(username, id);
 
         return ResponseEntity.ok()
                 .contentType(MediaType.parseMediaType(contentType))

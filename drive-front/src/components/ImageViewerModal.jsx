@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import AuthImage from "./AuthImage";
 import ExifFramePreviewModal from "./ExifFramePreviewModal";
 
 export default function ImageViewerModal({
@@ -53,7 +54,11 @@ export default function ImageViewerModal({
             </button>
 
             <div className="viewer-image-wrap">
-              <img className="photo-modal-image" src={photo.imageUrl} alt={photo.originalName} />
+              <AuthImage
+                className="photo-modal-image"
+                src={photo.imageUrl}
+                alt={photo.originalName}
+              />
             </div>
 
             <button type="button" className="viewer-nav right" onClick={onNext}>

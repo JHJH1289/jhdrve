@@ -26,6 +26,13 @@ async function request(url, options = {}) {
     headers,
   });
 
+  if (response.status === 401 || response.status === 403) {
+    localStorage.removeItem("token");
+    localStorage.removeItem("username");
+    window.location.reload();
+    throw new Error("로그인이 필요합니다.");
+  }
+
   if (!response.ok) {
     const text = await response.text();
     throw new Error(text || `HTTP ${response.status}`);

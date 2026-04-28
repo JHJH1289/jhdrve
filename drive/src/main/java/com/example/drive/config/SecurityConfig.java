@@ -35,11 +35,11 @@ public class SecurityConfig {
                 .formLogin(formLogin -> formLogin.disable())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
+                        .requestMatchers("/").permitAll()
                         .requestMatchers("/api/auth/**").permitAll()
-                        .requestMatchers("/api/photos/view").permitAll()
+                        .requestMatchers("/api/photos/view/**").permitAll()
                         .requestMatchers("/api/photos/**").authenticated()
-                        .anyRequest().permitAll()
-                )
+                        .anyRequest().permitAll())
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();

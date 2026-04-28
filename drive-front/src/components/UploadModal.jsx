@@ -47,9 +47,14 @@ export default function UploadModal({ open, onClose, onUpload, defaultFolder = "
           <input type="file" multiple accept="image/*" onChange={handleChange} />
         </div>
 
-        <button type="button" onClick={handleSubmit}>
-          업로드
-        </button>
+        <div className="viewer-actions">
+          <button type="button" onClick={handleSubmit}>
+            업로드
+          </button>
+          <button type="button" className="secondary-btn" onClick={onClose}>
+            취소
+          </button>
+        </div>
 
         <PhotoPreview files={files} />
       </div>

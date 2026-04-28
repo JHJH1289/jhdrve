@@ -65,10 +65,10 @@ export async function generateExifFrameBlob(photo) {
     const line2Y = height + Math.round(footerHeight * 0.66);
 
     // 폰트 크기
-    const techFontSize = Math.max(16, Math.round(width * 0.016));
+    const techFontSize = Math.max(16, Math.round(width * 0.020));
     const dateFontSize = Math.max(14, Math.round(width * 0.0125));
     const brandFontSize = Math.max(28, Math.round(width * 0.026));
-    const cameraFontSize = Math.max(16, Math.round(width * 0.016));
+    const cameraFontSize = Math.max(16, Math.round(width * 0.020));
     const lensFontSize = Math.max(14, Math.round(width * 0.013));
 
     // ---------- 좌측 정보 ----------
@@ -83,9 +83,9 @@ export async function generateExifFrameBlob(photo) {
 
     ctx.textBaseline = "middle";
 
-    // 1줄
+    // 1줄 (ISO 줄) -> bold
     ctx.fillStyle = "#111111";
-    ctx.font = `500 ${techFontSize}px Arial`;
+    ctx.font = `700 ${techFontSize}px Arial`;
     drawSingleLineEllipsis(ctx, technicalText || "-", leftX, line1Y, leftMaxWidth, "left");
 
     // 2줄
@@ -108,7 +108,7 @@ export async function generateExifFrameBlob(photo) {
         logoRightX,
         height + footerHeight / 2,
         logoMaxWidth,
-        footerHeight * 0.3
+        footerHeight * 0.56
       );
     } else {
       const brandText = safe(photo.cameraMake)?.toUpperCase() || "CAMERA";
@@ -133,10 +133,12 @@ export async function generateExifFrameBlob(photo) {
     const cameraText = compactJoin([photo.cameraMake, photo.cameraModel], " ").toUpperCase();
     const lensText = safe(photo.lensModel);
 
+    // 1줄 (카메라 기종) -> bold
     ctx.fillStyle = "#111111";
-    ctx.font = `500 ${cameraFontSize}px Arial`;
+    ctx.font = `700 ${cameraFontSize}px Arial`;
     drawSingleLineEllipsis(ctx, cameraText || "-", rightX, line1Y, rightMaxWidth, "right");
 
+    // 2줄
     ctx.fillStyle = "#6f6f6f";
     ctx.font = `400 ${lensFontSize}px Arial`;
     drawSingleLineEllipsis(ctx, lensText || "-", rightX, line2Y, rightMaxWidth, "right");

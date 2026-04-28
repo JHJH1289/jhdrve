@@ -5,8 +5,8 @@
 body {
   margin: 0;
   font-family: Arial, sans-serif;
-  background: #f4f6f8;
-  color: #222;
+  background: #f3f8f3;
+  color: #1f2a1f;
 }
 
 button,
@@ -17,12 +17,17 @@ select {
 
 button {
   border: 0;
-  background: #111827;
-  color: white;
+  background: #2f6b3b;
+  color: #ffffff;
   padding: 12px 18px;
   border-radius: 10px;
   cursor: pointer;
   font-size: 15px;
+  transition: background-color 0.18s ease, transform 0.18s ease;
+}
+
+button:hover {
+  background: #25562f;
 }
 
 button:disabled {
@@ -40,10 +45,10 @@ button:disabled {
 .auth-card {
   max-width: 900px;
   margin: 0 auto;
-  background: #fff;
+  background: #ffffff;
   padding: 32px;
   border-radius: 16px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 8px 24px rgba(34, 85, 50, 0.08);
 }
 
 .auth-card {
@@ -53,12 +58,13 @@ button:disabled {
 h1,
 h2 {
   margin-top: 0;
+  color: #204b2b;
 }
 
 .subtitle,
 .auth-subtitle,
 .summary {
-  color: #555;
+  color: #55705b;
 }
 
 .row {
@@ -75,22 +81,29 @@ select {
   display: block;
   width: 100%;
   padding: 12px;
-  border: 1px solid #ccc;
+  border: 1px solid #c6d8c8;
   border-radius: 10px;
-  background: #fff;
+  background: #ffffff;
+  color: #1f2a1f;
 }
 
-.upload-section {
-  margin-bottom: 18px;
+input[type="file"]:focus,
+input[type="text"]:focus,
+input[type="password"]:focus,
+select:focus {
+  outline: 2px solid #9ac8a3;
+  border-color: #7fb18b;
 }
 
 .status-box {
   margin-top: 18px;
   padding: 14px;
-  background: #f3f4f6;
+  background: #edf6ee;
+  border: 1px solid #d3e4d5;
   border-radius: 10px;
   white-space: pre-wrap;
   word-break: break-all;
+  color: #26452d;
 }
 
 .preview-section {
@@ -100,7 +113,7 @@ select {
 .preview-section img {
   max-width: 100%;
   border-radius: 12px;
-  border: 1px solid #ddd;
+  border: 1px solid #d7e4d9;
   margin-top: 8px;
 }
 
@@ -115,18 +128,24 @@ select {
 }
 
 .card {
-  border: 1px solid #ddd;
+  position: relative;
+  border: 1px solid #d7e4d9;
   border-radius: 12px;
   overflow: hidden;
-  background: #fff;
+  background: #ffffff;
 }
 
-.card img {
+.card img,
+.card-image {
   width: 100%;
   height: 180px;
   object-fit: cover;
   display: block;
-  background: #eee;
+  background: #e7efe8;
+}
+
+.card-image-wrap {
+  cursor: pointer;
 }
 
 .card-body {
@@ -137,11 +156,12 @@ select {
   font-weight: bold;
   margin-bottom: 8px;
   word-break: break-all;
+  color: #1f2a1f;
 }
 
 .meta {
   font-size: 13px;
-  color: #555;
+  color: #58705d;
   line-height: 1.5;
   word-break: break-all;
 }
@@ -149,23 +169,19 @@ select {
 .delete-btn {
   width: 100%;
   margin-top: 10px;
-  background: #b91c1c;
+  background: #b42318;
   padding: 10px 12px;
   font-size: 14px;
 }
 
 .delete-btn:hover {
-  background: #991b1b;
-}
-
-.card-image {
-  cursor: pointer;
+  background: #941c13;
 }
 
 .photo-modal-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.72);
+  background: rgba(17, 38, 20, 0.72);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -173,38 +189,31 @@ select {
   z-index: 9999;
 }
 
-.photo-modal-content {
-  position: relative;
-  max-width: 1100px;
-  width: 100%;
-  max-height: 90vh;
-  background: #ffffff;
-  border-radius: 16px;
-  padding: 20px;
-  overflow: auto;
-}
-
 .photo-modal-close {
   position: sticky;
   top: 0;
   margin-left: auto;
   display: block;
-  background: #111827;
+  background: #2f6b3b;
   margin-bottom: 12px;
 }
 
 .photo-modal-image {
-  width: 100%;
+  max-width: 100%;
+  max-height: 70vh;
+  width: auto;
   height: auto;
   display: block;
   border-radius: 12px;
-  border: 1px solid #ddd;
+  border: 1px solid #d7e4d9;
+  background: #e7efe8;
 }
 
 .photo-modal-info {
   margin-top: 16px;
   line-height: 1.7;
   word-break: break-all;
+  color: #27402c;
 }
 
 .top-bar {
@@ -223,8 +232,9 @@ select {
 .control-box {
   margin-top: 24px;
   padding: 24px;
-  border: 1px solid #e5e7eb;
+  border: 1px solid #d7e4d9;
   border-radius: 16px;
+  background: #f9fdf9;
 }
 
 .auth-tabs {
@@ -235,13 +245,13 @@ select {
 
 .tab {
   flex: 1;
-  background: #e5e7eb;
-  color: #111827;
+  background: #dcebdd;
+  color: #21472b;
 }
 
 .tab.active {
-  background: #111827;
-  color: white;
+  background: #2f6b3b;
+  color: #ffffff;
 }
 
 .auth-form {
@@ -261,11 +271,11 @@ select {
 }
 
 .folder-card {
-  background: #fff;
-  border: 1px solid #ddd;
+  background: #ffffff;
+  border: 1px solid #d7e4d9;
   border-radius: 16px;
   padding: 28px 20px;
-  color: #111827;
+  color: #1f2a1f;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
@@ -274,7 +284,8 @@ select {
 }
 
 .folder-card:hover {
-  border-color: #9ca3af;
+  border-color: #7dab88;
+  background: #f2faf3;
 }
 
 .folder-icon {
@@ -285,11 +296,12 @@ select {
   font-size: 18px;
   font-weight: 700;
   word-break: break-all;
+  color: #245032;
 }
 
 .back-btn {
-  background: #e5e7eb;
-  color: #111827;
+  background: #dcebdd;
+  color: #21472b;
   margin-bottom: 12px;
 }
 
@@ -363,12 +375,12 @@ select {
 }
 
 .secondary-btn {
-  background: #e5e7eb;
-  color: #111827;
+  background: #dcebdd;
+  color: #21472b;
 }
 
 .secondary-btn:hover {
-  background: #d1d5db;
+  background: #cde1d0;
 }
 
 .preview-modal-backdrop {
@@ -384,7 +396,7 @@ select {
   border-radius: 16px;
   padding: 20px;
   overflow: auto;
-  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.24);
+  box-shadow: 0 12px 36px rgba(34, 85, 50, 0.18);
 }
 
 .preview-body {
@@ -393,8 +405,8 @@ select {
   display: flex;
   justify-content: center;
   align-items: center;
-  background: #f9fafb;
-  border: 1px solid #e5e7eb;
+  background: #f6fbf7;
+  border: 1px solid #d7e4d9;
   border-radius: 14px;
   padding: 16px;
 }
@@ -404,11 +416,11 @@ select {
   width: 100%;
   text-align: center;
   padding: 40px 20px;
-  color: #374151;
+  color: #35523b;
 }
 
 .preview-error {
-  color: #b91c1c;
+  color: #b42318;
 }
 
 .exif-preview-image {
@@ -416,6 +428,27 @@ select {
   max-height: 72vh;
   display: block;
   border-radius: 12px;
-  border: 1px solid #ddd;
-  background: white;
+  border: 1px solid #d7e4d9;
+  background: #ffffff;
+}
+
+.upload-fab {
+  width: 58px;
+  height: 58px;
+  padding: 0;
+  border-radius: 999px;
+  font-size: 34px;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 10px 24px rgba(34, 85, 50, 0.22);
+  background: #2f6b3b;
+}
+
+.upload-fab.floating {
+  position: fixed;
+  right: 28px;
+  bottom: 28px;
+  z-index: 1000;
 }

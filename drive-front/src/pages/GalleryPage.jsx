@@ -74,19 +74,11 @@ export default function GalleryPage({ username, onLogout }) {
       setStatus("삭제 완료");
 
       if (selectedFolder) {
-        const nextPhotos = photos.filter((photo) => photo.id !== id);
-        setPhotos(nextPhotos);
-
-        if (viewerIndex !== null) {
-          if (nextPhotos.length === 0) {
-            setViewerIndex(null);
-          } else if (viewerIndex >= nextPhotos.length) {
-            setViewerIndex(nextPhotos.length - 1);
-          }
-        }
+        await loadPhotos(selectedFolder);
       }
 
       await loadFolders();
+      setViewerIndex(null);
     } catch (error) {
       setStatus(`삭제 오류: ${error.message}`);
     }
@@ -115,7 +107,6 @@ export default function GalleryPage({ username, onLogout }) {
     if (viewerIndex === null || photos.length === 0) return;
     setViewerIndex((prev) => (prev === photos.length - 1 ? 0 : prev + 1));
   }
-
   return (
     <div className="app">
       <div className="wrap">
@@ -126,9 +117,6 @@ export default function GalleryPage({ username, onLogout }) {
           </div>
 
           <div className="user-box">
-            <button type="button" onClick={() => setUploadModalOpen(true)}>
-              사진 업로드
-            </button>
             <button type="button" onClick={handleLogoutClick}>
               로그아웃
             </button>
@@ -165,6 +153,16 @@ export default function GalleryPage({ username, onLogout }) {
             <PhotoList photos={photos} onDelete={handleDelete} onOpen={openViewer} />
           </>
         )}
+
+        <button
+          type="button"
+          className="upload-fab floating"
+          onClick={() => setUploadModalOpen(true)}
+          aria-label="사진 업로드"
+          title="사진 업로드"
+        >
+          +
+        </button>
 
         <UploadModal
           open={uploadModalOpen}
