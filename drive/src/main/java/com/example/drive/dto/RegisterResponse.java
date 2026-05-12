@@ -4,10 +4,12 @@ public class RegisterResponse {
 
     private final Long id;
     private final String username;
+    private final String role;
 
-    public RegisterResponse(Long id, String username) {
+    public RegisterResponse(Long id, String username, String role) {
         this.id = id;
         this.username = username;
+        this.role = role;
     }
 
     public Long getId() {
@@ -16,5 +18,9 @@ public class RegisterResponse {
 
     public String getUsername() {
         return username;
+    }
+
+    public String getRole() {
+        return role;
     }
 }

@@ -37,7 +37,7 @@ export default function AuthImage({ src, alt, className }) {
 
         currentUrl = nextUrl;
         setObjectUrl(nextUrl);
-      } catch (error) {
+      } catch {
         if (!cancelled) {
           setFailed(true);
           setObjectUrl("");

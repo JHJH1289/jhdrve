@@ -16,12 +16,20 @@ public class User {
     @Column(nullable = false, length = 255)
     private String password;
 
+    @Column(length = 20)
+    private String role;
+
     protected User() {
     }
 
     public User(String username, String password) {
+        this(username, password, "USER");
+    }
+
+    public User(String username, String password, String role) {
         this.username = username;
         this.password = password;
+        this.role = role;
     }
 
     public Long getId() {
@@ -34,5 +42,9 @@ public class User {
 
     public String getPassword() {
         return password;
+    }
+
+    public String getRole() {
+        return role;
     }
 }

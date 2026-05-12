@@ -1,21 +1,17 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo } from "react";
 
 export default function PhotoPreview({ files }) {
-  const [previewUrls, setPreviewUrls] = useState([]);
+  const previewUrls = useMemo(() => (files || []).map((file) => ({
+    name: file.name,
+    size: file.size,
+    url: URL.createObjectURL(file),
+  })), [files]);
 
-  useEffect(() => {
-    const urls = (files || []).map((file) => ({
-      name: file.name,
-      size: file.size,
-      url: URL.createObjectURL(file),
-    }));
-
-    setPreviewUrls(urls);
-
-    return () => {
-      urls.forEach((item) => URL.revokeObjectURL(item.url));
-    };
-  }, [files]);
+  useEffect(() => (
+    () => {
+      previewUrls.forEach((item) => URL.revokeObjectURL(item.url));
+    }
+  ), [previewUrls]);
 
   if (!files || files.length === 0) return null;
 

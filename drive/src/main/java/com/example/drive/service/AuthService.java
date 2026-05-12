@@ -51,10 +51,10 @@ public class AuthService {
             throw new IllegalArgumentException("이미 존재하는 아이디입니다.");
         }
 
-        User user = new User(username, passwordEncoder.encode(password));
+        User user = new User(username, passwordEncoder.encode(password), "USER");
         User saved = userRepository.save(user);
 
-        return new RegisterResponse(saved.getId(), saved.getUsername());
+        return new RegisterResponse(saved.getId(), saved.getUsername(), saved.getRole());
     }
 
     public LoginResponse login(LoginRequest request) {
@@ -65,7 +65,10 @@ public class AuthService {
                 )
         );
 
+        User user = userRepository.findByUsername(authentication.getName())
+                .orElseThrow(() -> new IllegalArgumentException("User not found."));
+
         String token = jwtTokenProvider.createToken(authentication);
-        return new LoginResponse(token, authentication.getName());
+        return new LoginResponse(token, authentication.getName(), user.getRole());
     }
 }

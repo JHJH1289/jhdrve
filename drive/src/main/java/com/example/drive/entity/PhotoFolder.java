@@ -1,0 +1,57 @@
+package com.example.drive.entity;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
+
+import java.time.LocalDateTime;
+
+@Entity
+@Table(
+        name = "photo_folders",
+        uniqueConstraints = @UniqueConstraint(columnNames = {"owner_id", "folder_path"})
+)
+public class PhotoFolder {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @Column(name = "owner_id", nullable = false, length = 100)
+    private String ownerId;
+
+    @Column(name = "folder_path", nullable = false, length = 300)
+    private String folderPath;
+
+    @Column(nullable = false)
+    private LocalDateTime createdAt;
+
+    protected PhotoFolder() {
+    }
+
+    public PhotoFolder(String ownerId, String folderPath, LocalDateTime createdAt) {
+        this.ownerId = ownerId;
+        this.folderPath = folderPath;
+        this.createdAt = createdAt;
+    }
+
+    public Long getId() {
+        return id;
+    }
+
+    public String getOwnerId() {
+        return ownerId;
+    }
+
+    public String getFolderPath() {
+        return folderPath;
+    }
+
+    public LocalDateTime getCreatedAt() {
+        return createdAt;
+    }
+}

@@ -1,16 +1,9 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import PhotoPreview from "./PhotoPreview";
 
 export default function UploadModal({ open, onClose, onUpload, defaultFolder = "기본" }) {
-  const [folderPath, setFolderPath] = useState(defaultFolder);
+  const [folderPath, setFolderPath] = useState(defaultFolder || "기본");
   const [files, setFiles] = useState([]);
-
-  useEffect(() => {
-    if (open) {
-      setFolderPath(defaultFolder || "기본");
-      setFiles([]);
-    }
-  }, [open, defaultFolder]);
 
   if (!open) return null;
 
@@ -21,6 +14,7 @@ export default function UploadModal({ open, onClose, onUpload, defaultFolder = "
 
   async function handleSubmit() {
     await onUpload(folderPath, files);
+    setFiles([]);
   }
 
   return (

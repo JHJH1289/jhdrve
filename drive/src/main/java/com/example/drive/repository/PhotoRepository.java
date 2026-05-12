@@ -12,9 +12,9 @@ public interface PhotoRepository extends JpaRepository<Photo, Long> {
 
     List<Photo> findAllByOwnerId(String ownerId);
 
-    Optional<Photo> findByIdAndOwnerId(Long id, String ownerId);
+    List<Photo> findAllByOwnerIdAndFolderPath(String ownerId, String folderPath);
 
-    Optional<Photo> findByStorageKey(String storageKey);
+    Optional<Photo> findByIdAndOwnerId(Long id, String ownerId);
 
     @Query("select distinct p.folderPath from Photo p where p.ownerId = :ownerId")
     List<String> findDistinctFolderPathByOwnerId(@Param("ownerId") String ownerId);

@@ -1,35 +1,44 @@
 import { useEffect, useState } from "react";
-import { deletePhoto, fetchFolders, fetchPhotos, uploadPhotos } from "../api/photoApi";
+import { createFolder, deletePhoto, fetchFolders, fetchPhotos, updatePhotoFolder, uploadPhotos } from "../api/photoApi";
 import FolderGrid from "../components/FolderGrid";
 import ImageViewerModal from "../components/ImageViewerModal";
 import PhotoList from "../components/PhotoList";
 import PhotoStatus from "../components/PhotoStatus";
 import UploadModal from "../components/UploadModal";
 
+const DEFAULT_FOLDER = "\uAE30\uBCF8";
+const TEXT = {
+  account: "\uACC4\uC815",
+  appTitle: "\uC0AC\uC9C4 \uB4DC\uB77C\uC774\uBE0C",
+  backToFolders: "\u2190 \uD3F4\uB354 \uBAA9\uB85D",
+  createFolder: "\uD3F4\uB354 \uC0DD\uC131",
+  createFolderPrompt: "\uC0DD\uC131\uD560 \uD3F4\uB354\uBA85\uC744 \uC785\uB825\uD558\uC138\uC694.",
+  folderList: "\uD3F4\uB354 \uBAA9\uB85D",
+  logout: "\uB85C\uADF8\uC544\uC6C3",
+  photoUpload: "\uC0AC\uC9C4 \uC5C5\uB85C\uB4DC",
+  totalPrefix: "총",
+  totalSuffix: "장",
+};
+
 export default function GalleryPage({ username, onLogout }) {
-  const [folders, setFolders] = useState(["기본"]);
+  const [folders, setFolders] = useState([DEFAULT_FOLDER]);
   const [selectedFolder, setSelectedFolder] = useState(null);
   const [photos, setPhotos] = useState([]);
   const [status, setStatus] = useState("");
+  const [notice, setNotice] = useState(null);
   const [uploadModalOpen, setUploadModalOpen] = useState(false);
   const [viewerIndex, setViewerIndex] = useState(null);
 
-  useEffect(() => {
-    loadFolders();
-  }, []);
-
-  useEffect(() => {
-    if (selectedFolder) {
-      loadPhotos(selectedFolder);
-    }
-  }, [selectedFolder]);
+  function showNotice(message, type = "success") {
+    setNotice({ message, type });
+  }
 
   async function loadFolders() {
     try {
       const result = await fetchFolders();
-      setFolders(result && result.length ? result : ["기본"]);
+      setFolders(result && result.length ? result : [DEFAULT_FOLDER]);
     } catch (error) {
-      setStatus(`폴더 조회 오류: ${error.message}`);
+      setStatus(`\uD3F4\uB354 \uC870\uD68C \uC624\uB958: ${error.message}`);
     }
   }
 
@@ -39,21 +48,38 @@ export default function GalleryPage({ username, onLogout }) {
       const result = await fetchPhotos(folderPath);
       setPhotos(Array.isArray(result) ? result : []);
     } catch (error) {
-      setStatus(`목록 조회 오류: ${error.message}`);
+      setStatus(`\uBAA9\uB85D \uC870\uD68C \uC624\uB958: ${error.message}`);
       setPhotos([]);
+    }
+  }
+
+  async function handleCreateFolder() {
+    const folderPath = window.prompt(TEXT.createFolderPrompt, "");
+    if (folderPath === null) return;
+
+    try {
+      const result = await createFolder(folderPath);
+      showNotice(`'${result.folderPath}' \uD3F4\uB354\uB97C \uB9CC\uB4E4\uC5C8\uC2B5\uB2C8\uB2E4.`);
+      await loadFolders();
+      if (result?.folderPath) {
+        setSelectedFolder(result.folderPath);
+      }
+    } catch (error) {
+      showNotice(`\uD3F4\uB354 \uC0DD\uC131 \uC2E4\uD328: ${error.message}`, "error");
+      setStatus(`\uD3F4\uB354 \uC0DD\uC131 \uC624\uB958: ${error.message}`);
     }
   }
 
   async function handleUpload(folderPath, files) {
     try {
       if (!files || files.length === 0) {
-        setStatus("업로드할 파일을 선택하세요.");
+        setStatus("\uC5C5\uB85C\uB4DC\uD560 \uD30C\uC77C\uC744 \uC120\uD0DD\uD558\uC138\uC694.");
         return;
       }
 
-      setStatus("업로드 중...");
+      setStatus("\uC5C5\uB85C\uB4DC \uC911...");
       await uploadPhotos(folderPath, files);
-      setStatus("업로드 완료");
+      setStatus("\uC5C5\uB85C\uB4DC \uC644\uB8CC");
       setUploadModalOpen(false);
 
       await loadFolders();
@@ -64,14 +90,14 @@ export default function GalleryPage({ username, onLogout }) {
         setSelectedFolder(folderPath);
       }
     } catch (error) {
-      setStatus(`업로드 오류: ${error.message}`);
+      setStatus(`\uC5C5\uB85C\uB4DC \uC624\uB958: ${error.message}`);
     }
   }
 
   async function handleDelete(id) {
     try {
       await deletePhoto(id);
-      setStatus("삭제 완료");
+      setStatus("\uC0AD\uC81C \uC644\uB8CC");
 
       if (selectedFolder) {
         await loadPhotos(selectedFolder);
@@ -80,8 +106,28 @@ export default function GalleryPage({ username, onLogout }) {
       await loadFolders();
       setViewerIndex(null);
     } catch (error) {
-      setStatus(`삭제 오류: ${error.message}`);
+      setStatus(`\uC0AD\uC81C \uC624\uB958: ${error.message}`);
     }
+  }
+
+  async function handleUpdateFolder(id, folderPath) {
+    let result;
+
+    try {
+      result = await updatePhotoFolder(id, folderPath);
+    } catch (error) {
+      showNotice(`\uD3F4\uB354 \uBCC0\uACBD \uC2E4\uD328: ${error.message}`, "error");
+      setStatus(`\uD3F4\uB354 \uBCC0\uACBD \uC624\uB958: ${error.message}`);
+      throw error;
+    }
+
+    showNotice(`'${result.folderPath}' \uD3F4\uB354\uB85C \uC62E\uACBC\uC2B5\uB2C8\uB2E4.`);
+    setSelectedFolder(result.folderPath);
+    setPhotos([result]);
+    setViewerIndex(null);
+
+    await loadFolders();
+    await loadPhotos(result.folderPath);
   }
 
   function handleLogoutClick() {
@@ -107,18 +153,82 @@ export default function GalleryPage({ username, onLogout }) {
     if (viewerIndex === null || photos.length === 0) return;
     setViewerIndex((prev) => (prev === photos.length - 1 ? 0 : prev + 1));
   }
+
+  useEffect(() => {
+    if (!notice) return undefined;
+
+    const timer = window.setTimeout(() => setNotice(null), 2500);
+    return () => window.clearTimeout(timer);
+  }, [notice]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function syncFolders() {
+      try {
+        const result = await fetchFolders();
+        if (!cancelled) {
+          setFolders(result && result.length ? result : [DEFAULT_FOLDER]);
+        }
+      } catch (error) {
+        if (!cancelled) {
+          setStatus(`\uD3F4\uB354 \uC870\uD68C \uC624\uB958: ${error.message}`);
+        }
+      }
+    }
+
+    syncFolders();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!selectedFolder) return undefined;
+
+    let cancelled = false;
+
+    async function syncPhotos() {
+      try {
+        const result = await fetchPhotos(selectedFolder);
+        if (!cancelled) {
+          setStatus("");
+          setPhotos(Array.isArray(result) ? result : []);
+        }
+      } catch (error) {
+        if (!cancelled) {
+          setStatus(`\uBAA9\uB85D \uC870\uD68C \uC624\uB958: ${error.message}`);
+          setPhotos([]);
+        }
+      }
+    }
+
+    syncPhotos();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedFolder]);
+
   return (
     <div className="app">
+      {notice && (
+        <div className={notice.type === "error" ? "top-notice error" : "top-notice"}>
+          {notice.message}
+        </div>
+      )}
+
       <div className="wrap">
         <div className="top-bar">
           <div>
-            <h1>사진 드라이브</h1>
-            <p className="subtitle">계정: {username}</p>
+            <h1>{TEXT.appTitle}</h1>
+            <p className="subtitle">{TEXT.account}: {username}</p>
           </div>
 
           <div className="user-box">
             <button type="button" onClick={handleLogoutClick}>
-              로그아웃
+              {TEXT.logout}
             </button>
           </div>
         </div>
@@ -127,8 +237,11 @@ export default function GalleryPage({ username, onLogout }) {
 
         {!selectedFolder ? (
           <>
-            <div className="section-header">
-              <h2>폴더 목록</h2>
+            <div className="section-header folder-section-header">
+              <h2>{TEXT.folderList}</h2>
+              <button type="button" onClick={handleCreateFolder}>
+                {TEXT.createFolder}
+              </button>
             </div>
             <FolderGrid folders={folders} onOpenFolder={setSelectedFolder} />
           </>
@@ -144,10 +257,12 @@ export default function GalleryPage({ username, onLogout }) {
                   setViewerIndex(null);
                 }}
               >
-                ← 폴더 목록
+                {TEXT.backToFolders}
               </button>
               <h2>{selectedFolder}</h2>
-              <p className="summary">총 {photos.length}장</p>
+              <p className="summary">
+                {TEXT.totalPrefix} {photos.length}{TEXT.totalSuffix}
+              </p>
             </div>
 
             <PhotoList photos={photos} onDelete={handleDelete} onOpen={openViewer} />
@@ -158,8 +273,8 @@ export default function GalleryPage({ username, onLogout }) {
           type="button"
           className="upload-fab floating"
           onClick={() => setUploadModalOpen(true)}
-          aria-label="사진 업로드"
-          title="사진 업로드"
+          aria-label={TEXT.photoUpload}
+          title={TEXT.photoUpload}
         >
           +
         </button>
@@ -168,7 +283,7 @@ export default function GalleryPage({ username, onLogout }) {
           open={uploadModalOpen}
           onClose={() => setUploadModalOpen(false)}
           onUpload={handleUpload}
-          defaultFolder={selectedFolder || "기본"}
+          defaultFolder={selectedFolder || DEFAULT_FOLDER}
         />
 
         <ImageViewerModal
@@ -179,6 +294,7 @@ export default function GalleryPage({ username, onLogout }) {
           onPrev={showPrev}
           onNext={showNext}
           onDelete={handleDelete}
+          onUpdateFolder={handleUpdateFolder}
         />
       </div>
     </div>

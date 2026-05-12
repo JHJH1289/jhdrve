@@ -1,6 +1,36 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { generateExifFrameBlob } from "../utils/exifFrame";
 import AuthImage from "./AuthImage";
-import ExifFramePreviewModal from "./ExifFramePreviewModal";
+
+const DEFAULT_FOLDER = "\uAE30\uBCF8";
+const TEXT = {
+  cameraMake: "\uCE74\uBA54\uB77C \uC81C\uC870\uC0AC",
+  cameraModel: "\uCE74\uBA54\uB77C \uBAA8\uB378",
+  cancel: "\uCDE8\uC18C",
+  close: "\uB2EB\uAE30",
+  createdAt: "\uC5C5\uB85C\uB4DC\uC77C",
+  delete: "\uC0AD\uC81C",
+  download: "\uB2E4\uC6B4\uB85C\uB4DC",
+  exposureTime: "\uB178\uCD9C\uC2DC\uAC04",
+  fileName: "\uD30C\uC77C\uBA85",
+  folder: "\uD3F4\uB354",
+  folderEdit: "\uD3F4\uB354 \uC218\uC815",
+  folderName: "\uD3F4\uB354\uBA85",
+  focalLength: "\uCD08\uC810\uAC70\uB9AC",
+  frameApply: "EXIF \uD504\uB808\uC784 \uC801\uC6A9",
+  frameBuilding: "EXIF \uD504\uB808\uC784 \uC0DD\uC131 \uC911...",
+  frameFailed: "EXIF \uD504\uB808\uC784\uC744 \uC0DD\uC131\uD558\uC9C0 \uBABB\uD588\uC2B5\uB2C8\uB2E4.",
+  iso: "ISO \uAC10\uB3C4",
+  lensModel: "\uB80C\uC988 \uBAA8\uB378",
+  nextPhoto: "\uB2E4\uC74C \uC0AC\uC9C4",
+  originalDownloadFailed: "\uC6D0\uBCF8 \uC774\uBBF8\uC9C0\uB97C \uB2E4\uC6B4\uB85C\uB4DC\uD558\uC9C0 \uBABB\uD588\uC2B5\uB2C8\uB2E4.",
+  originalView: "\uC6D0\uBCF8 \uBCF4\uAE30",
+  previousPhoto: "\uC774\uC804 \uC0AC\uC9C4",
+  resolution: "\uD574\uC0C1\uB3C4",
+  save: "\uC800\uC7A5",
+  saving: "\uC800\uC7A5 \uC911...",
+  takenAt: "\uCD2C\uC601\uC77C",
+};
 
 export default function ImageViewerModal({
   open,
@@ -10,94 +40,248 @@ export default function ImageViewerModal({
   onPrev,
   onNext,
   onDelete,
+  onUpdateFolder,
 }) {
-  const [previewOpen, setPreviewOpen] = useState(false);
+  const [frameMode, setFrameMode] = useState(true);
+  const [frameUrl, setFrameUrl] = useState("");
+  const [frameBlob, setFrameBlob] = useState(null);
+  const [frameLoading, setFrameLoading] = useState(false);
+  const [frameError, setFrameError] = useState("");
+  const [editingFolder, setEditingFolder] = useState(false);
+  const [folderDraft, setFolderDraft] = useState("");
+  const [savingFolder, setSavingFolder] = useState(false);
+
+  const handleClose = useCallback(() => {
+    setFrameMode(true);
+    setEditingFolder(false);
+    onClose();
+  }, [onClose]);
 
   useEffect(() => {
-    if (!open) {
-      setPreviewOpen(false);
-      return;
-    }
+    if (!open) return undefined;
 
     function handleKeyDown(e) {
-      if (e.key === "Escape") {
-        if (previewOpen) {
-          setPreviewOpen(false);
-        } else {
-          onClose();
-        }
-      }
-      if (e.key === "ArrowLeft" && !previewOpen) onPrev();
-      if (e.key === "ArrowRight" && !previewOpen) onNext();
+      if (e.key === "Escape") handleClose();
+      if (e.key === "ArrowLeft") onPrev();
+      if (e.key === "ArrowRight") onNext();
     }
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [open, onClose, onPrev, onNext, previewOpen]);
+  }, [handleClose, open, onPrev, onNext]);
 
-  if (!open || currentIndex === null || !photos[currentIndex]) return null;
+  const photo = open && currentIndex !== null ? photos[currentIndex] : null;
 
-  const photo = photos[currentIndex];
+  useEffect(() => {
+    setFrameMode(true);
+    setFrameUrl("");
+    setFrameBlob(null);
+    setFrameError("");
+    setEditingFolder(false);
+    setSavingFolder(false);
+    setFolderDraft(photo?.folderPath || DEFAULT_FOLDER);
+  }, [photo?.id, photo?.folderPath]);
+
+  useEffect(() => {
+    if (!open || !photo) return undefined;
+
+    let cancelled = false;
+    let currentUrl = "";
+
+    async function buildFrame() {
+      try {
+        setFrameLoading(true);
+        setFrameError("");
+        setFrameBlob(null);
+
+        const blob = await generateExifFrameBlob(photo);
+        if (cancelled) return;
+
+        currentUrl = URL.createObjectURL(blob);
+        setFrameBlob(blob);
+        setFrameUrl(currentUrl);
+      } catch (error) {
+        if (!cancelled) {
+          setFrameMode(false);
+          setFrameError(error.message || TEXT.frameFailed);
+        }
+      } finally {
+        if (!cancelled) {
+          setFrameLoading(false);
+        }
+      }
+    }
+
+    buildFrame();
+
+    return () => {
+      cancelled = true;
+      if (currentUrl) {
+        URL.revokeObjectURL(currentUrl);
+      }
+    };
+  }, [open, photo]);
+
+  if (!photo) return null;
+
   const displayFNumber = photo.fNumber || photo.fnumber || "-";
+  const showFrame = frameMode && frameUrl && !frameError;
+
+  async function handleDownload() {
+    if (showFrame) {
+      downloadBlob(frameBlob, buildFrameFileName(photo.originalName));
+      return;
+    }
+
+    const blob = await fetchProtectedBlob(photo.imageUrl);
+    downloadBlob(blob, photo.originalName || "photo");
+  }
+
+  async function handleFolderSave() {
+    if (!onUpdateFolder || savingFolder) return;
+
+    try {
+      setSavingFolder(true);
+      await onUpdateFolder(photo.id, folderDraft);
+      setEditingFolder(false);
+    } finally {
+      setSavingFolder(false);
+    }
+  }
 
   return (
-    <>
-      <div className="photo-modal-backdrop" onClick={onClose}>
-        <div className="viewer-modal-content" onClick={(e) => e.stopPropagation()}>
-          <button className="photo-modal-close" type="button" onClick={onClose}>
-            닫기
+    <div className="photo-modal-backdrop" onClick={handleClose}>
+      <div className="viewer-modal-content" onClick={(e) => e.stopPropagation()}>
+        <button className="photo-modal-close" type="button" onClick={handleClose}>
+          {TEXT.close}
+        </button>
+
+        <div className="viewer-layout">
+          <button type="button" className="viewer-nav left" onClick={onPrev} aria-label={TEXT.previousPhoto}>
+            {"\u2039"}
           </button>
 
-          <div className="viewer-layout">
-            <button type="button" className="viewer-nav left" onClick={onPrev}>
-              ‹
-            </button>
-
-            <div className="viewer-image-wrap">
+          <div className="viewer-image-wrap">
+            {!showFrame && (
               <AuthImage
                 className="photo-modal-image"
                 src={photo.imageUrl}
                 alt={photo.originalName}
               />
-            </div>
+            )}
 
-            <button type="button" className="viewer-nav right" onClick={onNext}>
-              ›
-            </button>
+            {showFrame && (
+              <img
+                className="photo-modal-image exif-viewer-image"
+                src={frameUrl}
+                alt={`${photo.originalName} EXIF frame`}
+              />
+            )}
           </div>
 
-          <div className="photo-modal-info">
-            <div><strong>파일명:</strong> {photo.originalName}</div>
-            <div><strong>폴더:</strong> {photo.folderPath}</div>
-            <div><strong>카메라 제조업체:</strong> {photo.cameraMake || "-"}</div>
-            <div><strong>카메라 모델:</strong> {photo.cameraModel || "-"}</div>
-            <div><strong>초점거리:</strong> {photo.focalLength || "-"}</div>
-            <div><strong>F-스톱:</strong> {displayFNumber}</div>
-            <div><strong>노출시간:</strong> {photo.exposureTime || "-"}</div>
-            <div><strong>ISO 감도:</strong> {photo.iso || "-"}</div>
-            <div><strong>렌즈 모델:</strong> {photo.lensModel || "-"}</div>
-            <div><strong>촬영일:</strong> {photo.takenAt || "-"}</div>
-            <div><strong>업로드일:</strong> {photo.createdAt || "-"}</div>
-            <div><strong>해상도:</strong> {photo.width || "-"} x {photo.height || "-"}</div>
-          </div>
+          <button type="button" className="viewer-nav right" onClick={onNext} aria-label={TEXT.nextPhoto}>
+            {"\u203A"}
+          </button>
+        </div>
 
-          <div className="viewer-actions">
-            <button type="button" onClick={() => setPreviewOpen(true)}>
-              EXIF 프레임 미리보기
-            </button>
+        {frameLoading && <div className="viewer-inline-status">{TEXT.frameBuilding}</div>}
+        {frameError && <div className="viewer-inline-error">{frameError}</div>}
 
-            <button className="delete-btn viewer-delete-btn" type="button" onClick={() => onDelete(photo.id)}>
-              삭제
+        <div className="photo-modal-info">
+          <div><strong>{TEXT.fileName}:</strong> {photo.originalName}</div>
+          <div><strong>{TEXT.folder}:</strong> {photo.folderPath}</div>
+          <div><strong>{TEXT.cameraMake}:</strong> {photo.cameraMake || "-"}</div>
+          <div><strong>{TEXT.cameraModel}:</strong> {photo.cameraModel || "-"}</div>
+          <div><strong>{TEXT.focalLength}:</strong> {photo.focalLength || "-"}</div>
+          <div><strong>F-stop:</strong> {displayFNumber}</div>
+          <div><strong>{TEXT.exposureTime}:</strong> {photo.exposureTime || "-"}</div>
+          <div><strong>{TEXT.iso}:</strong> {photo.iso || "-"}</div>
+          <div><strong>{TEXT.lensModel}:</strong> {photo.lensModel || "-"}</div>
+          <div><strong>{TEXT.takenAt}:</strong> {photo.takenAt || "-"}</div>
+          <div><strong>{TEXT.createdAt}:</strong> {photo.createdAt || "-"}</div>
+          <div><strong>{TEXT.resolution}:</strong> {photo.width || "-"} x {photo.height || "-"}</div>
+        </div>
+
+        {editingFolder && (
+          <div className="viewer-folder-editor">
+            <input
+              type="text"
+              value={folderDraft}
+              onChange={(e) => setFolderDraft(e.target.value)}
+              placeholder={TEXT.folderName}
+              disabled={savingFolder}
+            />
+            <button type="button" onClick={handleFolderSave} disabled={savingFolder}>
+              {savingFolder ? TEXT.saving : TEXT.save}
+            </button>
+            <button
+              type="button"
+              className="secondary-btn"
+              onClick={() => {
+                setEditingFolder(false);
+                setFolderDraft(photo.folderPath || DEFAULT_FOLDER);
+              }}
+              disabled={savingFolder}
+            >
+              {TEXT.cancel}
             </button>
           </div>
+        )}
+
+        <div className="viewer-actions">
+          <button
+            type="button"
+            className="secondary-btn"
+            onClick={() => setFrameMode((value) => !value)}
+            disabled={!frameUrl}
+          >
+            {showFrame ? TEXT.originalView : TEXT.frameApply}
+          </button>
+          <button type="button" onClick={handleDownload} disabled={frameLoading && !frameBlob}>
+            {TEXT.download}
+          </button>
+          <button type="button" className="secondary-btn" onClick={() => setEditingFolder((value) => !value)}>
+            {TEXT.folderEdit}
+          </button>
+          <button className="delete-btn viewer-delete-btn" type="button" onClick={() => onDelete(photo.id)}>
+            {TEXT.delete}
+          </button>
         </div>
       </div>
-
-      <ExifFramePreviewModal
-        open={previewOpen}
-        photo={photo}
-        onClose={() => setPreviewOpen(false)}
-      />
-    </>
+    </div>
   );
+}
+
+async function fetchProtectedBlob(url) {
+  const token = localStorage.getItem("token") || "";
+  const headers = token ? { Authorization: `Bearer ${token}` } : {};
+  const response = await fetch(url, { headers });
+
+  if (!response.ok) {
+    throw new Error(TEXT.originalDownloadFailed);
+  }
+
+  return response.blob();
+}
+
+function downloadBlob(blob, fileName) {
+  const objectUrl = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = objectUrl;
+  link.download = fileName;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(objectUrl);
+}
+
+function buildFrameFileName(originalName) {
+  if (!originalName) return "photo-exif-frame.jpg";
+
+  const lastDotIndex = originalName.lastIndexOf(".");
+  if (lastDotIndex === -1) {
+    return `${originalName}-exif-frame.jpg`;
+  }
+
+  return `${originalName.slice(0, lastDotIndex)}-exif-frame.jpg`;
 }

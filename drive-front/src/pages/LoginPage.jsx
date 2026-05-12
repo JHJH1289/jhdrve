@@ -24,9 +24,11 @@ export default function LoginPage({ onLoginSuccess }) {
         setMode("login");
       } else {
         const result = await login(username.trim(), password);
+        const role = result.role || "USER";
         localStorage.setItem("token", result.token);
         localStorage.setItem("username", result.username);
-        onLoginSuccess(result.username);
+        localStorage.setItem("role", role);
+        onLoginSuccess({ username: result.username, role });
       }
     } catch (error) {
       setMessage(error.message || "요청 중 오류가 발생했습니다.");
@@ -39,7 +41,7 @@ export default function LoginPage({ onLoginSuccess }) {
     <div className="auth-page">
       <div className="auth-card">
         <h1>사진 드라이브</h1>
-        <p className="auth-subtitle">로그인 후 사진 갤러리를 사용할 수 있습니다.</p>
+        <p className="auth-subtitle">로그인하면 사진 갤러리를 사용할 수 있습니다.</p>
 
         <div className="auth-tabs">
           <button

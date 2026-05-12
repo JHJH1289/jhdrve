@@ -23,10 +23,6 @@ public class PhotoMetadataService {
     public PhotoMetadata extract(MultipartFile file) {
         try (InputStream inputStream = file.getInputStream()) {
             Metadata metadata = ImageMetadataReader.readMetadata(inputStream);
-            for (var directory : metadata.getDirectories()) {
-                System.out.println("[" + directory.getName() + "]");
-                directory.getTags().forEach(tag -> System.out.println(tag.getTagName() + " = " + tag.getDescription()));
-            }
             Integer width = extractWidth(metadata);
             Integer height = extractHeight(metadata);
             LocalDateTime takenAt = extractTakenAt(metadata);

@@ -1,32 +1,29 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import GalleryPage from "./pages/GalleryPage";
 import LoginPage from "./pages/LoginPage";
 
 export default function App() {
-  const [username, setUsername] = useState(null);
-
-  useEffect(() => {
+  const [session, setSession] = useState(() => {
     const token = localStorage.getItem("token");
     const savedUsername = localStorage.getItem("username");
+    const role = localStorage.getItem("role") || "USER";
+    return token && savedUsername ? { username: savedUsername, role } : null;
+  });
 
-    if (token && savedUsername) {
-      setUsername(savedUsername);
-    }
-  }, []);
-
-  function handleLoginSuccess(nextUsername) {
-    setUsername(nextUsername);
+  function handleLoginSuccess(nextSession) {
+    setSession(nextSession);
   }
 
   function handleLogout() {
     localStorage.removeItem("token");
     localStorage.removeItem("username");
-    setUsername(null);
+    localStorage.removeItem("role");
+    setSession(null);
   }
 
-  if (!username) {
+  if (!session) {
     return <LoginPage onLoginSuccess={handleLoginSuccess} />;
   }
 
-  return <GalleryPage username={username} onLogout={handleLogout} />;
+  return <GalleryPage username={session.username} role={session.role} onLogout={handleLogout} />;
 }

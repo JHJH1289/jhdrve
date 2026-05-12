@@ -1,2 +1,5 @@
 # uploaded files
 uploads/
+
+# packaged snapshots
+*.zip
