@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { generateExifFrameBlob } from "../utils/exifFrame";
+import { canGenerateExifFrame, generateExifFrameBlob, shouldAutoRenderExifFrame } from "../utils/exifFrame";
 import AuthImage from "./AuthImage";
 
 const TEXT = {
@@ -42,7 +42,6 @@ export default function ImageViewerModal({
   const [frameError, setFrameError] = useState("");
 
   const handleClose = useCallback(() => {
-    setFrameMode(true);
     onClose();
   }, [onClose]);
 
@@ -62,14 +61,15 @@ export default function ImageViewerModal({
   const photo = open && currentIndex !== null ? photos[currentIndex] : null;
 
   useEffect(() => {
-    setFrameMode(true);
+    setFrameMode(shouldAutoRenderExifFrame(photo));
     setFrameUrl("");
     setFrameBlob(null);
     setFrameError("");
-  }, [photo?.id, photo?.folderPath]);
+  }, [photo]);
 
   useEffect(() => {
-    if (!open || !photo) return undefined;
+    if (!open || !photo || !frameMode) return undefined;
+    if (frameUrl || frameBlob) return undefined;
 
     let cancelled = false;
     let currentUrl = "";
@@ -106,12 +106,13 @@ export default function ImageViewerModal({
         URL.revokeObjectURL(currentUrl);
       }
     };
-  }, [open, photo]);
+  }, [frameBlob, frameMode, frameUrl, open, photo]);
 
   if (!photo) return null;
 
   const displayFNumber = photo.fNumber || photo.fnumber || "-";
   const showFrame = frameMode && frameUrl && !frameError;
+  const frameAvailable = canGenerateExifFrame(photo);
 
   async function handleDownload() {
     if (showFrame) {
@@ -181,7 +182,7 @@ export default function ImageViewerModal({
             type="button"
             className="secondary-btn"
             onClick={() => setFrameMode((value) => !value)}
-            disabled={!frameUrl}
+            disabled={!frameAvailable || frameLoading}
           >
             {showFrame ? TEXT.originalView : TEXT.frameApply}
           </button>

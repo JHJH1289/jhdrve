@@ -1,12 +1,12 @@
 import { useEffect, useState } from "react";
-import { createFolder, deleteFolder, deletePhoto, fetchFolders, fetchPhotos, renameFolder, updateFolderOrder, uploadPhotos } from "../api/photoApi";
+import { createFolder, deleteDuplicatePhotos, deleteFolder, deletePhoto, fetchDuplicatePhotos, fetchFolders, fetchPhotos, renameFolder, updateFolderOrder, uploadPhotos } from "../api/photoApi";
+import DuplicatePhotoModal from "../components/DuplicatePhotoModal";
 import FolderGrid from "../components/FolderGrid";
 import ImageViewerModal from "../components/ImageViewerModal";
 import PhotoList from "../components/PhotoList";
 import PhotoStatus from "../components/PhotoStatus";
 import UploadModal from "../components/UploadModal";
 
-const DEFAULT_FOLDER = "\uAE30\uBCF8";
 const TEXT = {
   account: "\uACC4\uC815",
   appTitle: "\uC0AC\uC9C4 \uB4DC\uB77C\uC774\uBE0C",
@@ -14,15 +14,19 @@ const TEXT = {
   createFolder: "\uD3F4\uB354 \uC0DD\uC131",
   createFolderPrompt: "\uC0DD\uC131\uD560 \uD3F4\uB354\uBA85\uC744 \uC785\uB825\uD558\uC138\uC694.",
   deleteFolderConfirm: "\uD3F4\uB354\uB97C \uC0AD\uC81C\uD560\uAE4C\uC694? \uBE44\uC5B4 \uC788\uB294 \uD3F4\uB354\uB9CC \uC0AD\uC81C\uB429\uB2C8\uB2E4.",
+  deleteDuplicates: "\uC911\uBCF5 \uC0AC\uC9C4 \uC815\uB9AC",
+  deleteDuplicatesDone: "\uC911\uBCF5 \uC0AC\uC9C4 \uC815\uB9AC \uC644\uB8CC",
+  duplicateScanDone: "\uC911\uBCF5 \uC0AC\uC9C4\uC744 \uD655\uC778\uD574\uC8FC\uC138\uC694.",
+  duplicateScanEmpty: "\uC911\uBCF5 \uC0AC\uC9C4\uC774 \uC5C6\uC2B5\uB2C8\uB2E4.",
+  duplicateScanLoading: "\uC911\uBCF5 \uC0AC\uC9C4 \uCC3E\uB294 \uC911...",
   folderList: "\uD3F4\uB354 \uBAA9\uB85D",
   logout: "\uB85C\uADF8\uC544\uC6C3",
+  adminMode: "\uAD00\uB9AC\uC790\uBAA8\uB4DC",
   photoUpload: "\uC0AC\uC9C4 \uC5C5\uB85C\uB4DC",
   renameFolderPrompt: "\uBCC0\uACBD\uD560 \uD3F4\uB354\uBA85\uC744 \uC785\uB825\uD558\uC138\uC694.",
-  totalPrefix: "총",
-  totalSuffix: "장",
 };
 
-export default function GalleryPage({ username, onLogout }) {
+export default function GalleryPage({ username, role, onLogout, onOpenAdmin }) {
   const [folders, setFolders] = useState([]);
   const [selectedFolder, setSelectedFolder] = useState(null);
   const [photos, setPhotos] = useState([]);
@@ -30,6 +34,10 @@ export default function GalleryPage({ username, onLogout }) {
   const [notice, setNotice] = useState(null);
   const [uploadModalOpen, setUploadModalOpen] = useState(false);
   const [viewerIndex, setViewerIndex] = useState(null);
+  const [duplicateGroups, setDuplicateGroups] = useState([]);
+  const [duplicateModalOpen, setDuplicateModalOpen] = useState(false);
+  const [loadingDuplicates, setLoadingDuplicates] = useState(false);
+  const [deletingDuplicates, setDeletingDuplicates] = useState(false);
 
   function showNotice(message, type = "success") {
     setNotice({ message, type });
@@ -109,6 +117,67 @@ export default function GalleryPage({ username, onLogout }) {
       setViewerIndex(null);
     } catch (error) {
       setStatus(`\uC0AD\uC81C \uC624\uB958: ${error.message}`);
+    }
+  }
+
+  async function handleDeletePhotos(ids) {
+    if (!ids || ids.length === 0) return;
+
+    try {
+      await Promise.all(ids.map((id) => deletePhoto(id)));
+      setStatus("\uC0AD\uC81C \uC644\uB8CC");
+
+      if (selectedFolder) {
+        await loadPhotos(selectedFolder);
+      }
+
+      await loadFolders();
+      setViewerIndex(null);
+    } catch (error) {
+      setStatus(`\uC0AD\uC81C \uC624\uB958: ${error.message}`);
+      throw error;
+    }
+  }
+
+  async function handleDeleteDuplicates() {
+    if (loadingDuplicates || deletingDuplicates) return;
+
+    try {
+      setLoadingDuplicates(true);
+      setStatus(TEXT.duplicateScanLoading);
+      const groups = await fetchDuplicatePhotos();
+      setDuplicateGroups(groups);
+
+      if (groups.length === 0) {
+        setDuplicateModalOpen(false);
+        setStatus(TEXT.duplicateScanEmpty);
+        return;
+      }
+
+      setDuplicateModalOpen(true);
+      setStatus(TEXT.duplicateScanDone);
+    } catch (error) {
+      setStatus(`\uC911\uBCF5 \uC0AC\uC9C4 \uC870\uD68C \uC624\uB958: ${error.message}`);
+    } finally {
+      setLoadingDuplicates(false);
+    }
+  }
+
+  async function handleConfirmDeleteDuplicates() {
+    if (deletingDuplicates) return;
+
+    try {
+      setDeletingDuplicates(true);
+      setStatus("\uC911\uBCF5 \uC0AC\uC9C4 \uC815\uB9AC \uC911...");
+      await deleteDuplicatePhotos();
+      setDuplicateModalOpen(false);
+      setDuplicateGroups([]);
+      setStatus(TEXT.deleteDuplicatesDone);
+      await loadFolders();
+    } catch (error) {
+      setStatus(`\uC911\uBCF5 \uC0AC\uC9C4 \uC815\uB9AC \uC624\uB958: ${error.message}`);
+    } finally {
+      setDeletingDuplicates(false);
     }
   }
 
@@ -249,6 +318,11 @@ export default function GalleryPage({ username, onLogout }) {
             <button type="button" onClick={handleLogoutClick}>
               {TEXT.logout}
             </button>
+            {role === "ADMIN" && (
+              <button type="button" className="secondary-btn" onClick={onOpenAdmin}>
+                {TEXT.adminMode}
+              </button>
+            )}
           </div>
         </div>
 
@@ -258,9 +332,14 @@ export default function GalleryPage({ username, onLogout }) {
           <>
             <div className="section-header folder-section-header">
               <h2>{TEXT.folderList}</h2>
-              <button type="button" onClick={handleCreateFolder}>
-                {TEXT.createFolder}
-              </button>
+              <div className="folder-header-actions">
+                <button type="button" className="secondary-btn" onClick={handleDeleteDuplicates} disabled={loadingDuplicates || deletingDuplicates}>
+                  {TEXT.deleteDuplicates}
+                </button>
+                <button type="button" onClick={handleCreateFolder}>
+                  {TEXT.createFolder}
+                </button>
+              </div>
             </div>
             <FolderGrid
               folders={folders}
@@ -285,12 +364,9 @@ export default function GalleryPage({ username, onLogout }) {
                 {TEXT.backToFolders}
               </button>
               <h2>{selectedFolder}</h2>
-              <p className="summary">
-                {TEXT.totalPrefix} {photos.length}{TEXT.totalSuffix}
-              </p>
             </div>
 
-            <PhotoList photos={photos} onDelete={handleDelete} onOpen={openViewer} />
+            <PhotoList photos={photos} onDeleteSelected={handleDeletePhotos} onOpen={openViewer} />
           </>
         )}
 
@@ -304,12 +380,15 @@ export default function GalleryPage({ username, onLogout }) {
           +
         </button>
 
-        <UploadModal
-          open={uploadModalOpen}
-          onClose={() => setUploadModalOpen(false)}
-          onUpload={handleUpload}
-          defaultFolder={selectedFolder || DEFAULT_FOLDER}
-        />
+        {uploadModalOpen && (
+          <UploadModal
+            key={selectedFolder || "folder-list-upload"}
+            open={uploadModalOpen}
+            onClose={() => setUploadModalOpen(false)}
+            onUpload={handleUpload}
+            defaultFolder={selectedFolder || ""}
+          />
+        )}
 
         <ImageViewerModal
           open={viewerIndex !== null}
@@ -319,6 +398,14 @@ export default function GalleryPage({ username, onLogout }) {
           onPrev={showPrev}
           onNext={showNext}
           onDelete={handleDelete}
+        />
+
+        <DuplicatePhotoModal
+          open={duplicateModalOpen}
+          groups={duplicateGroups}
+          deleting={deletingDuplicates}
+          onClose={() => setDuplicateModalOpen(false)}
+          onDelete={handleConfirmDeleteDuplicates}
         />
       </div>
     </div>

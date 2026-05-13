@@ -1,4 +1,5 @@
 import { useRef, useState } from "react";
+import AuthImage from "./AuthImage";
 
 const TEXT = {
   delete: "\uC0AD\uC81C",
@@ -76,8 +77,20 @@ export default function FolderGrid({ folders, onOpenFolder, onReorder, onDeleteF
                 onOpenFolder(folder.folderPath);
               }}
             >
+              <div className="folder-preview-stack" aria-hidden="true">
+                {buildPreviewSlots(folder.previewImageUrls).map((imageUrl, index) => (
+                  <div className={`folder-preview-frame frame-${index + 1}`} key={`${folder.folderPath}-${index}`}>
+                    {imageUrl && (
+                      <AuthImage
+                        className="folder-preview-image"
+                        src={imageUrl}
+                        alt=""
+                      />
+                    )}
+                  </div>
+                ))}
+              </div>
               <div className="folder-card-top">
-                <div className="folder-icon" aria-hidden="true">{"\uD83D\uDCC1"}</div>
                 <div className="folder-name">{folder.folderPath}</div>
               </div>
               <div className="folder-date">{formatDate(folder.updatedAt)}</div>
@@ -110,6 +123,14 @@ export default function FolderGrid({ folders, onOpenFolder, onReorder, onDeleteF
       })}
     </div>
   );
+}
+
+function buildPreviewSlots(previewImageUrls = []) {
+  if (previewImageUrls.length === 0) {
+    return ["", "", ""];
+  }
+
+  return [0, 1, 2].map((index) => previewImageUrls[index % previewImageUrls.length]);
 }
 
 function formatDate(value) {

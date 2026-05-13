@@ -1,5 +1,6 @@
 package com.example.drive.service;
 
+import com.example.drive.dto.DuplicatePhotoGroupResponse;
 import com.example.drive.dto.FolderResponse;
 import com.example.drive.dto.PhotoMetadata;
 import com.example.drive.dto.PhotoResponse;
@@ -16,11 +17,21 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.security.DigestInputStream;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Base64;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 @Service
@@ -101,6 +112,34 @@ public class PhotoService {
     }
 
     @Transactional
+    public List<FolderResponse> getAllFoldersForAdmin() {
+        Set<String> ownerIds = new LinkedHashSet<>();
+        photoFolderRepository.findAll()
+                .stream()
+                .map(PhotoFolder::getOwnerId)
+                .map(this::normalizeOwnerId)
+                .forEach(ownerIds::add);
+        photoRepository.findDistinctOwnerId()
+                .stream()
+                .map(this::normalizeOwnerId)
+                .forEach(ownerIds::add);
+
+        for (String ownerId : ownerIds) {
+            photoRepository.findDistinctFolderPathByOwnerId(ownerId)
+                    .stream()
+                    .map(this::normalizeFolderPath)
+                    .forEach(folderPath -> ensureFolder(ownerId, folderPath));
+        }
+
+        return ownerIds.stream()
+                .flatMap(ownerId -> photoFolderRepository.findAllByOwnerId(ownerId)
+                        .stream()
+                        .sorted(folderComparator())
+                        .map(folder -> toFolderResponse(ownerId, folder)))
+                .toList();
+    }
+
+    @Transactional
     public List<FolderResponse> getFolders(String ownerId) {
         String normalizedOwnerId = normalizeOwnerId(ownerId);
 
@@ -133,12 +172,27 @@ public class PhotoService {
 
         long photoCount = photoRepository.countByOwnerIdAndFolderPath(normalizedOwnerId, normalizedFolderPath);
         if (photoCount > 0) {
-            throw new IllegalArgumentException("Only empty folders can be deleted.");
+            throw new IllegalArgumentException("폴더가 비어있지 않습니다.");
         }
 
         PhotoFolder folder = photoFolderRepository.findByOwnerIdAndFolderPath(normalizedOwnerId, normalizedFolderPath)
                 .orElseThrow(() -> new IllegalArgumentException("Folder not found. folderPath=" + normalizedFolderPath));
         photoFolderRepository.delete(folder);
+    }
+
+    @Transactional
+    public void deleteFolderAsAdmin(String ownerId, String folderPath) {
+        String normalizedOwnerId = normalizeOwnerId(ownerId);
+        String normalizedFolderPath = normalizeFolderPath(folderPath);
+
+        List<Photo> photos = photoRepository.findAllByOwnerIdAndFolderPath(normalizedOwnerId, normalizedFolderPath);
+        for (Photo photo : photos) {
+            storageService.delete(photo.getStorageKey());
+        }
+        photoRepository.deleteAll(photos);
+
+        photoFolderRepository.findByOwnerIdAndFolderPath(normalizedOwnerId, normalizedFolderPath)
+                .ifPresent(photoFolderRepository::delete);
     }
 
     @Transactional
@@ -201,6 +255,77 @@ public class PhotoService {
         ensureFolder(photo.getOwnerId(), photo.getFolderPath()).touch(LocalDateTime.now());
         storageService.delete(photo.getStorageKey());
         photoRepository.delete(photo);
+    }
+
+    @Transactional
+    public int deleteDuplicatePhotos(String ownerId) {
+        String normalizedOwnerId = normalizeOwnerId(ownerId);
+        List<DuplicatePhotoGroup> groups = findDuplicatePhotoGroups(normalizedOwnerId);
+        List<Photo> duplicates = groups.stream()
+                .flatMap(group -> group.duplicatePhotos().stream())
+                .toList();
+
+        Set<String> touchedFolders = new LinkedHashSet<>();
+        for (Photo duplicate : duplicates) {
+            touchedFolders.add(duplicate.getFolderPath());
+            storageService.delete(duplicate.getStorageKey());
+        }
+
+        photoRepository.deleteAll(duplicates);
+        LocalDateTime now = LocalDateTime.now();
+        for (String folderPath : touchedFolders) {
+            ensureFolder(normalizedOwnerId, folderPath).touch(now);
+        }
+
+        return duplicates.size();
+    }
+
+    public List<DuplicatePhotoGroupResponse> getDuplicatePhotoGroups(String ownerId) {
+        String normalizedOwnerId = normalizeOwnerId(ownerId);
+
+        return findDuplicatePhotoGroups(normalizedOwnerId)
+                .stream()
+                .map(group -> new DuplicatePhotoGroupResponse(
+                        toPhotoResponse(group.keepPhoto()),
+                        group.duplicatePhotos().stream().map(this::toPhotoResponse).toList()
+                ))
+                .toList();
+    }
+
+    private List<DuplicatePhotoGroup> findDuplicatePhotoGroups(String ownerId) {
+        List<Photo> photos = photoRepository.findAllByOwnerId(ownerId);
+        Map<Long, List<Photo>> photosBySize = new HashMap<>();
+        for (Photo photo : photos) {
+            photosBySize.computeIfAbsent(photo.getFileSize(), ignored -> new ArrayList<>()).add(photo);
+        }
+
+        List<DuplicatePhotoGroup> groups = new ArrayList<>();
+        for (List<Photo> sameSizePhotos : photosBySize.values()) {
+            if (sameSizePhotos.size() < 2) {
+                continue;
+            }
+
+            Map<String, List<Photo>> photosByHash = new HashMap<>();
+            for (Photo photo : sameSizePhotos) {
+                photosByHash.computeIfAbsent(fileHash(photo), ignored -> new ArrayList<>()).add(photo);
+            }
+
+            for (List<Photo> sameHashPhotos : photosByHash.values()) {
+                if (sameHashPhotos.size() < 2) {
+                    continue;
+                }
+
+                sameHashPhotos.sort(Comparator
+                        .comparing(Photo::getCreatedAt, Comparator.nullsLast(Comparator.naturalOrder()))
+                        .thenComparing(Photo::getId));
+                groups.add(new DuplicatePhotoGroup(
+                        sameHashPhotos.get(0),
+                        List.copyOf(sameHashPhotos.subList(1, sameHashPhotos.size()))
+                ));
+            }
+        }
+
+        return groups;
     }
 
     private PhotoUploadItemResponse uploadOne(String ownerId, String folderPath, MultipartFile file) {
@@ -298,6 +423,19 @@ public class PhotoService {
         return "/api/photos/view/" + photoId;
     }
 
+    private String fileHash(Photo photo) {
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            Resource resource = storageService.loadAsResource(photo.getStorageKey());
+            try (InputStream inputStream = new DigestInputStream(resource.getInputStream(), digest)) {
+                inputStream.transferTo(OutputStream.nullOutputStream());
+            }
+            return Base64.getEncoder().encodeToString(digest.digest());
+        } catch (NoSuchAlgorithmException | IOException e) {
+            throw new IllegalStateException("Failed to inspect duplicate photo.", e);
+        }
+    }
+
     private PhotoFolder ensureFolder(String ownerId, String folderPath) {
         return photoFolderRepository.findByOwnerIdAndFolderPath(ownerId, folderPath)
                 .orElseGet(() -> {
@@ -314,10 +452,17 @@ public class PhotoService {
         LocalDateTime updatedAt = latestDate(folder.getUpdatedAt(), latestPhotoCreatedAt);
 
         return new FolderResponse(
+                ownerId,
                 folder.getFolderPath(),
                 updatedAt,
                 folder.getSortOrder(),
-                photoRepository.countByOwnerIdAndFolderPath(ownerId, folder.getFolderPath())
+                photoRepository.countByOwnerIdAndFolderPath(ownerId, folder.getFolderPath()),
+                photoRepository.findAllByOwnerIdAndFolderPath(ownerId, folder.getFolderPath())
+                        .stream()
+                        .sorted(photoComparator())
+                        .limit(3)
+                        .map(photo -> buildImageUrl(photo.getId()))
+                        .toList()
         );
     }
 
@@ -367,5 +512,8 @@ public class PhotoService {
     }
 
     public record PhotoFile(Resource resource, String contentType) {
+    }
+
+    private record DuplicatePhotoGroup(Photo keepPhoto, List<Photo> duplicatePhotos) {
     }
 }

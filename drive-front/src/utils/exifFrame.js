@@ -1,9 +1,18 @@
-const SONY_LOGO_SRC = "/sony_logo.png"; // public 폴더 실제 파일명에 맞게 수정
+const DEVICE_LOGOS = {
+  apple: "/apple__logo.png",
+  canon: "/canon_logo.png",
+  samsung: "/samsung_logo.png",
+  sony: "/sony_logo.png",
+};
+
+const AUTO_FRAME_BRANDS = new Set(["sony", "canon"]);
 
 export async function generateExifFrameBlob(photo) {
+  const deviceBrand = detectDeviceBrand(photo);
+  const logoSrc = deviceBrand ? DEVICE_LOGOS[deviceBrand] : "";
   const [{ image, revoke }, logo] = await Promise.all([
     loadProtectedImage(photo.imageUrl),
-    loadOptionalImage(SONY_LOGO_SRC),
+    logoSrc ? loadOptionalImage(logoSrc) : Promise.resolve(null),
   ]);
 
   try {
@@ -111,7 +120,7 @@ export async function generateExifFrameBlob(photo) {
         footerHeight * 0.56
       );
     } else {
-      const brandText = safe(photo.cameraMake)?.toUpperCase() || "CAMERA";
+      const brandText = displayDeviceBrand(deviceBrand, photo);
       ctx.fillStyle = "#111111";
       ctx.font = `700 ${brandFontSize}px "Times New Roman", serif`;
       ctx.textAlign = "right";
@@ -284,4 +293,28 @@ function safe(value) {
   if (value === null || value === undefined) return "";
   const text = String(value).trim();
   return text || "";
+}
+
+export function shouldAutoRenderExifFrame(photo) {
+  return AUTO_FRAME_BRANDS.has(detectDeviceBrand(photo));
+}
+
+export function canGenerateExifFrame(photo) {
+  return Boolean(photo?.imageUrl);
+}
+
+function detectDeviceBrand(photo) {
+  const text = compactJoin([photo?.cameraMake, photo?.cameraModel], " ").toLowerCase();
+
+  if (text.includes("sony")) return "sony";
+  if (text.includes("canon")) return "canon";
+  if (text.includes("samsung")) return "samsung";
+  if (text.includes("apple") || text.includes("iphone") || text.includes("ipad")) return "apple";
+
+  return "";
+}
+
+function displayDeviceBrand(deviceBrand, photo) {
+  if (deviceBrand) return deviceBrand.toUpperCase();
+  return safe(photo.cameraMake)?.toUpperCase() || "CAMERA";
 }

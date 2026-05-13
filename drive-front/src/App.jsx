@@ -1,8 +1,10 @@
 import { useState } from "react";
+import AdminPage from "./pages/AdminPage";
 import GalleryPage from "./pages/GalleryPage";
 import LoginPage from "./pages/LoginPage";
 
 export default function App() {
+  const [adminMode, setAdminMode] = useState(false);
   const [session, setSession] = useState(() => {
     const token = localStorage.getItem("token");
     const savedUsername = localStorage.getItem("username");
@@ -11,6 +13,7 @@ export default function App() {
   });
 
   function handleLoginSuccess(nextSession) {
+    setAdminMode(false);
     setSession(nextSession);
   }
 
@@ -18,6 +21,7 @@ export default function App() {
     localStorage.removeItem("token");
     localStorage.removeItem("username");
     localStorage.removeItem("role");
+    setAdminMode(false);
     setSession(null);
   }
 
@@ -25,5 +29,22 @@ export default function App() {
     return <LoginPage onLoginSuccess={handleLoginSuccess} />;
   }
 
-  return <GalleryPage username={session.username} role={session.role} onLogout={handleLogout} />;
+  if (session.role === "ADMIN" && adminMode) {
+    return (
+      <AdminPage
+        username={session.username}
+        onBackToGallery={() => setAdminMode(false)}
+        onLogout={handleLogout}
+      />
+    );
+  }
+
+  return (
+    <GalleryPage
+      username={session.username}
+      role={session.role}
+      onOpenAdmin={() => setAdminMode(true)}
+      onLogout={handleLogout}
+    />
+  );
 }

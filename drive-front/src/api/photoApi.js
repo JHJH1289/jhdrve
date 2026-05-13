@@ -78,6 +78,14 @@ export async function fetchAdminPhotos() {
     : [];
 }
 
+export async function fetchAdminFolders() {
+  const result = await request("/api/admin/photos/folders", {
+    method: "GET",
+  });
+
+  return normalizeFolders(result);
+}
+
 export async function fetchFolders() {
   const result = await request("/api/photos/folders", {
     method: "GET",
@@ -158,9 +166,40 @@ export async function deletePhoto(id) {
   });
 }
 
+export async function deleteDuplicatePhotos() {
+  return request("/api/photos/duplicates/delete", {
+    method: "POST",
+  });
+}
+
+export async function fetchDuplicatePhotos() {
+  const result = await request("/api/photos/duplicates", {
+    method: "GET",
+  });
+
+  return Array.isArray(result)
+    ? result.map((group) => ({
+        keepPhoto: normalizePhoto(group.keepPhoto),
+        duplicatePhotos: Array.isArray(group.duplicatePhotos)
+          ? group.duplicatePhotos.map(normalizePhoto)
+          : [],
+      }))
+    : [];
+}
+
 export async function deleteAdminPhoto(id) {
   return request(`/api/admin/photos/${id}`, {
     method: "DELETE",
+  });
+}
+
+export async function deleteAdminFolder(ownerId, folderPath) {
+  return request("/api/admin/photos/folders", {
+    method: "DELETE",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ ownerId, folderPath }),
   });
 }
 
@@ -168,15 +207,28 @@ function normalizeFolders(result) {
   return Array.isArray(result)
     ? result.map((folder, index) => {
         if (typeof folder === "string") {
-          return { folderPath: folder, updatedAt: null, sortOrder: index, photoCount: 0 };
+          return { ownerId: "", folderPath: folder, updatedAt: null, sortOrder: index, photoCount: 0, previewImageUrls: [] };
         }
 
         return {
+          ownerId: folder.ownerId || "",
           folderPath: folder.folderPath || DEFAULT_FOLDER,
           updatedAt: folder.updatedAt || null,
           sortOrder: folder.sortOrder ?? index,
           photoCount: folder.photoCount ?? 0,
+          previewImageUrls: Array.isArray(folder.previewImageUrls)
+            ? folder.previewImageUrls.map(normalizeImageUrl)
+            : [],
         };
       })
     : [];
+}
+
+function normalizePhoto(photo) {
+  return photo
+    ? {
+        ...photo,
+        imageUrl: normalizeImageUrl(photo.imageUrl),
+      }
+    : null;
 }

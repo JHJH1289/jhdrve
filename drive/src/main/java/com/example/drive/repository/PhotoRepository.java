@@ -31,6 +31,9 @@ public interface PhotoRepository extends JpaRepository<Photo, Long> {
     @Query("select distinct p.folderPath from Photo p where p.ownerId = :ownerId")
     List<String> findDistinctFolderPathByOwnerId(@Param("ownerId") String ownerId);
 
+    @Query("select distinct p.ownerId from Photo p")
+    List<String> findDistinctOwnerId();
+
     @Query("select max(p.createdAt) from Photo p where p.ownerId = :ownerId and p.folderPath = :folderPath")
     Optional<LocalDateTime> findLatestCreatedAtByOwnerIdAndFolderPath(
             @Param("ownerId") String ownerId,

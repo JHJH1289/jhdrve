@@ -1,5 +1,6 @@
 package com.example.drive.controller;
 
+import com.example.drive.dto.DuplicatePhotoGroupResponse;
 import com.example.drive.dto.FolderCreateRequest;
 import com.example.drive.dto.FolderOrderUpdateRequest;
 import com.example.drive.dto.FolderRenameRequest;
@@ -112,6 +113,22 @@ public class PhotoController {
         String username = authentication.getName();
         photoService.deletePhoto(username, id, isAdmin(authentication));
         return ResponseEntity.ok(Map.of("message", "삭제 완료"));
+    }
+
+    @PostMapping("/duplicates/delete")
+    public ResponseEntity<Map<String, Object>> deleteDuplicates(Authentication authentication) {
+        String username = authentication.getName();
+        int deletedCount = photoService.deleteDuplicatePhotos(username);
+        return ResponseEntity.ok(Map.of(
+                "message", "중복 사진 삭제 완료",
+                "deletedCount", deletedCount
+        ));
+    }
+
+    @GetMapping("/duplicates")
+    public ResponseEntity<List<DuplicatePhotoGroupResponse>> getDuplicates(Authentication authentication) {
+        String username = authentication.getName();
+        return ResponseEntity.ok(photoService.getDuplicatePhotoGroups(username));
     }
 
     @GetMapping("/view/{id}")
