@@ -480,7 +480,7 @@ select {
 .photo-date-list {
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: 28px;
 }
 
 .photo-select-toolbar {
@@ -526,21 +526,43 @@ select {
 .photo-date-group {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 12px;
+  border-top: 1px solid var(--line);
+  padding-top: 18px;
+}
+
+.photo-date-group:first-of-type {
+  border-top: 0;
+  padding-top: 0;
 }
 
 .photo-date-header {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 2px 8px 6px;
+  gap: 10px;
+  min-height: 34px;
+  padding: 0;
+}
+
+.photo-date-header::before {
+  content: "";
+  display: block;
+  width: 4px;
+  height: 24px;
+  border-radius: 999px;
+  background: var(--accent);
 }
 
 .photo-date-header h3 {
   margin: 0;
-  color: var(--text);
-  font-size: 15px;
-  font-weight: 700;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface-soft);
+  color: #204b2b;
+  font-size: 14px;
+  font-weight: 800;
+  line-height: 1.2;
+  padding: 7px 10px;
 }
 
 .photo-list {
@@ -1075,7 +1097,25 @@ select {
   }
 
   .photo-date-list {
-    gap: 16px;
+    gap: 22px;
+  }
+
+  .photo-date-group {
+    gap: 10px;
+    padding-top: 14px;
+  }
+
+  .photo-date-header {
+    min-height: 30px;
+  }
+
+  .photo-date-header::before {
+    height: 20px;
+  }
+
+  .photo-date-header h3 {
+    font-size: 13px;
+    padding: 6px 9px;
   }
 
   .photo-list {

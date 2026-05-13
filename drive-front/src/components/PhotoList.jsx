@@ -18,7 +18,7 @@ export default function PhotoList({ photos, onOpen, onDeleteSelected }) {
   const photoIdSet = new Set(photos.map((photo) => photo.id));
   const visibleSelectedIds = selectedIds.filter((id) => photoIdSet.has(id));
   const selectedIdSet = new Set(visibleSelectedIds);
-  const groups = groupPhotosByYear(photos);
+  const groups = groupPhotosByDate(photos);
   const allSelected = visibleSelectedIds.length === photos.length;
 
   function togglePhoto(id) {
@@ -84,17 +84,17 @@ export default function PhotoList({ photos, onOpen, onDeleteSelected }) {
   );
 }
 
-function groupPhotosByYear(photos) {
+function groupPhotosByDate(photos) {
   const groups = new Map();
 
   photos.forEach((photo, index) => {
     const dateValue = photo.takenAt || photo.createdAt;
-    const key = getYearKey(dateValue);
+    const key = getDateKey(dateValue);
 
     if (!groups.has(key)) {
       groups.set(key, {
         key,
-        label: formatYearLabel(dateValue),
+        label: formatDateLabel(dateValue),
         items: [],
       });
     }
@@ -105,23 +105,30 @@ function groupPhotosByYear(photos) {
   return Array.from(groups.values());
 }
 
-function getYearKey(value) {
+function getDateKey(value) {
   if (!value) return "no-date";
 
   const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return String(value).slice(0, 4) || "no-date";
+  if (Number.isNaN(date.getTime())) return String(value).slice(0, 10) || "no-date";
 
-  return String(date.getFullYear());
+  return [
+    date.getFullYear(),
+    String(date.getMonth() + 1).padStart(2, "0"),
+    String(date.getDate()).padStart(2, "0"),
+  ].join("-");
 }
 
-function formatYearLabel(value) {
+function formatDateLabel(value) {
   if (!value) return TEXT.noDate;
 
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) {
-    const year = String(value).slice(0, 4);
-    return year ? `${year}\uB144` : TEXT.noDate;
+    return String(value).slice(0, 10) || TEXT.noDate;
   }
 
-  return `${date.getFullYear()}\uB144`;
+  return new Intl.DateTimeFormat("ko-KR", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  }).format(date);
 }

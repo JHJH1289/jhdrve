@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { createFolder, deleteDuplicatePhotos, deleteFolder, deletePhoto, fetchDuplicatePhotos, fetchFolders, fetchPhotos, renameFolder, updateFolderOrder, uploadPhotos } from "../api/photoApi";
+import { deleteDuplicatePhotos, deleteFolder, deletePhoto, fetchDuplicatePhotos, fetchFolders, fetchPhotos, renameFolder, updateFolderOrder, uploadPhotos } from "../api/photoApi";
 import DuplicatePhotoModal from "../components/DuplicatePhotoModal";
 import FolderGrid from "../components/FolderGrid";
 import ImageViewerModal from "../components/ImageViewerModal";
@@ -11,8 +11,6 @@ const TEXT = {
   account: "\uACC4\uC815",
   appTitle: "\uC0AC\uC9C4 \uB4DC\uB77C\uC774\uBE0C",
   backToFolders: "\u2190 \uD3F4\uB354 \uBAA9\uB85D",
-  createFolder: "\uD3F4\uB354 \uC0DD\uC131",
-  createFolderPrompt: "\uC0DD\uC131\uD560 \uD3F4\uB354\uBA85\uC744 \uC785\uB825\uD558\uC138\uC694.",
   deleteFolderConfirm: "\uD3F4\uB354\uB97C \uC0AD\uC81C\uD560\uAE4C\uC694? \uBE44\uC5B4 \uC788\uB294 \uD3F4\uB354\uB9CC \uC0AD\uC81C\uB429\uB2C8\uB2E4.",
   deleteDuplicates: "\uC911\uBCF5 \uC0AC\uC9C4 \uC815\uB9AC",
   deleteDuplicatesDone: "\uC911\uBCF5 \uC0AC\uC9C4 \uC815\uB9AC \uC644\uB8CC",
@@ -60,23 +58,6 @@ export default function GalleryPage({ username, role, onLogout, onOpenAdmin }) {
     } catch (error) {
       setStatus(`\uBAA9\uB85D \uC870\uD68C \uC624\uB958: ${error.message}`);
       setPhotos([]);
-    }
-  }
-
-  async function handleCreateFolder() {
-    const folderPath = window.prompt(TEXT.createFolderPrompt, "");
-    if (folderPath === null) return;
-
-    try {
-      const result = await createFolder(folderPath);
-      showNotice(`'${result.folderPath}' \uD3F4\uB354\uB97C \uB9CC\uB4E4\uC5C8\uC2B5\uB2C8\uB2E4.`);
-      await loadFolders();
-      if (result?.folderPath) {
-        setSelectedFolder(result.folderPath);
-      }
-    } catch (error) {
-      showNotice(`\uD3F4\uB354 \uC0DD\uC131 \uC2E4\uD328: ${error.message}`, "error");
-      setStatus(`\uD3F4\uB354 \uC0DD\uC131 \uC624\uB958: ${error.message}`);
     }
   }
 
@@ -335,9 +316,6 @@ export default function GalleryPage({ username, role, onLogout, onOpenAdmin }) {
               <div className="folder-header-actions">
                 <button type="button" className="secondary-btn" onClick={handleDeleteDuplicates} disabled={loadingDuplicates || deletingDuplicates}>
                   {TEXT.deleteDuplicates}
-                </button>
-                <button type="button" onClick={handleCreateFolder}>
-                  {TEXT.createFolder}
                 </button>
               </div>
             </div>
