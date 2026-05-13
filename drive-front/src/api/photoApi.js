@@ -79,9 +79,11 @@ export async function fetchAdminPhotos() {
 }
 
 export async function fetchFolders() {
-  return request("/api/photos/folders", {
+  const result = await request("/api/photos/folders", {
     method: "GET",
   });
+
+  return normalizeFolders(result);
 }
 
 export async function createFolder(folderPath) {
@@ -92,6 +94,28 @@ export async function createFolder(folderPath) {
     },
     body: JSON.stringify({ folderPath }),
   });
+}
+
+export async function deleteFolder(folderPath) {
+  return request("/api/photos/folders", {
+    method: "DELETE",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ folderPath }),
+  });
+}
+
+export async function updateFolderOrder(folderPaths) {
+  const result = await request("/api/photos/folders/order", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ folderPaths }),
+  });
+
+  return normalizeFolders(result);
 }
 
 export async function uploadPhotos(folderPath, files) {
@@ -124,38 +148,25 @@ export async function deletePhoto(id) {
   });
 }
 
-export async function updatePhotoFolder(id, folderPath) {
-  const result = await request(`/api/photos/${id}/folder`, {
-    method: "PATCH",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ folderPath }),
-  });
-
-  return {
-    ...result,
-    imageUrl: normalizeImageUrl(result.imageUrl),
-  };
-}
-
 export async function deleteAdminPhoto(id) {
   return request(`/api/admin/photos/${id}`, {
     method: "DELETE",
   });
 }
 
-export async function updateAdminPhotoFolder(id, folderPath) {
-  const result = await request(`/api/admin/photos/${id}/folder`, {
-    method: "PATCH",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ folderPath }),
-  });
+function normalizeFolders(result) {
+  return Array.isArray(result)
+    ? result.map((folder, index) => {
+        if (typeof folder === "string") {
+          return { folderPath: folder, updatedAt: null, sortOrder: index, photoCount: 0 };
+        }
 
-  return {
-    ...result,
-    imageUrl: normalizeImageUrl(result.imageUrl),
-  };
+        return {
+          folderPath: folder.folderPath || DEFAULT_FOLDER,
+          updatedAt: folder.updatedAt || null,
+          sortOrder: folder.sortOrder ?? index,
+          photoCount: folder.photoCount ?? 0,
+        };
+      })
+    : [];
 }

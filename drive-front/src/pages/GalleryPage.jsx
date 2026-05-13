@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { createFolder, deletePhoto, fetchFolders, fetchPhotos, updatePhotoFolder, uploadPhotos } from "../api/photoApi";
+import { createFolder, deleteFolder, deletePhoto, fetchFolders, fetchPhotos, updateFolderOrder, uploadPhotos } from "../api/photoApi";
 import FolderGrid from "../components/FolderGrid";
 import ImageViewerModal from "../components/ImageViewerModal";
 import PhotoList from "../components/PhotoList";
@@ -7,12 +7,14 @@ import PhotoStatus from "../components/PhotoStatus";
 import UploadModal from "../components/UploadModal";
 
 const DEFAULT_FOLDER = "\uAE30\uBCF8";
+const DEFAULT_FOLDER_ITEM = { folderPath: DEFAULT_FOLDER, updatedAt: null, sortOrder: 0, photoCount: 0 };
 const TEXT = {
   account: "\uACC4\uC815",
   appTitle: "\uC0AC\uC9C4 \uB4DC\uB77C\uC774\uBE0C",
   backToFolders: "\u2190 \uD3F4\uB354 \uBAA9\uB85D",
   createFolder: "\uD3F4\uB354 \uC0DD\uC131",
   createFolderPrompt: "\uC0DD\uC131\uD560 \uD3F4\uB354\uBA85\uC744 \uC785\uB825\uD558\uC138\uC694.",
+  deleteFolderConfirm: "\uBE48 \uD3F4\uB354\uB97C \uC0AD\uC81C\uD560\uAE4C\uC694?",
   folderList: "\uD3F4\uB354 \uBAA9\uB85D",
   logout: "\uB85C\uADF8\uC544\uC6C3",
   photoUpload: "\uC0AC\uC9C4 \uC5C5\uB85C\uB4DC",
@@ -21,7 +23,7 @@ const TEXT = {
 };
 
 export default function GalleryPage({ username, onLogout }) {
-  const [folders, setFolders] = useState([DEFAULT_FOLDER]);
+  const [folders, setFolders] = useState([DEFAULT_FOLDER_ITEM]);
   const [selectedFolder, setSelectedFolder] = useState(null);
   const [photos, setPhotos] = useState([]);
   const [status, setStatus] = useState("");
@@ -36,7 +38,7 @@ export default function GalleryPage({ username, onLogout }) {
   async function loadFolders() {
     try {
       const result = await fetchFolders();
-      setFolders(result && result.length ? result : [DEFAULT_FOLDER]);
+      setFolders(result && result.length ? result : [DEFAULT_FOLDER_ITEM]);
     } catch (error) {
       setStatus(`\uD3F4\uB354 \uC870\uD68C \uC624\uB958: ${error.message}`);
     }
@@ -110,24 +112,28 @@ export default function GalleryPage({ username, onLogout }) {
     }
   }
 
-  async function handleUpdateFolder(id, folderPath) {
-    let result;
+  async function handleReorderFolders(nextFolders) {
+    setFolders(nextFolders);
 
     try {
-      result = await updatePhotoFolder(id, folderPath);
+      const result = await updateFolderOrder(nextFolders.map((folder) => folder.folderPath));
+      setFolders(result && result.length ? result : nextFolders);
     } catch (error) {
-      showNotice(`\uD3F4\uB354 \uBCC0\uACBD \uC2E4\uD328: ${error.message}`, "error");
-      setStatus(`\uD3F4\uB354 \uBCC0\uACBD \uC624\uB958: ${error.message}`);
-      throw error;
+      showNotice(`\uD3F4\uB354 \uC21C\uC11C \uC800\uC7A5 \uC2E4\uD328: ${error.message}`, "error");
+      await loadFolders();
     }
+  }
 
-    showNotice(`'${result.folderPath}' \uD3F4\uB354\uB85C \uC62E\uACBC\uC2B5\uB2C8\uB2E4.`);
-    setSelectedFolder(result.folderPath);
-    setPhotos([result]);
-    setViewerIndex(null);
+  async function handleDeleteFolder(folderPath) {
+    if (!window.confirm(`'${folderPath}' ${TEXT.deleteFolderConfirm}`)) return;
 
-    await loadFolders();
-    await loadPhotos(result.folderPath);
+    try {
+      await deleteFolder(folderPath);
+      showNotice(`'${folderPath}' \uD3F4\uB354\uB97C \uC0AD\uC81C\uD588\uC2B5\uB2C8\uB2E4.`);
+      await loadFolders();
+    } catch (error) {
+      showNotice(`\uD3F4\uB354 \uC0AD\uC81C \uC2E4\uD328: ${error.message}`, "error");
+    }
   }
 
   function handleLogoutClick() {
@@ -168,7 +174,7 @@ export default function GalleryPage({ username, onLogout }) {
       try {
         const result = await fetchFolders();
         if (!cancelled) {
-          setFolders(result && result.length ? result : [DEFAULT_FOLDER]);
+          setFolders(result && result.length ? result : [DEFAULT_FOLDER_ITEM]);
         }
       } catch (error) {
         if (!cancelled) {
@@ -243,7 +249,12 @@ export default function GalleryPage({ username, onLogout }) {
                 {TEXT.createFolder}
               </button>
             </div>
-            <FolderGrid folders={folders} onOpenFolder={setSelectedFolder} />
+            <FolderGrid
+              folders={folders}
+              onOpenFolder={setSelectedFolder}
+              onReorder={handleReorderFolders}
+              onDeleteFolder={handleDeleteFolder}
+            />
           </>
         ) : (
           <>
@@ -294,7 +305,6 @@ export default function GalleryPage({ username, onLogout }) {
           onPrev={showPrev}
           onNext={showNext}
           onDelete={handleDelete}
-          onUpdateFolder={handleUpdateFolder}
         />
       </div>
     </div>

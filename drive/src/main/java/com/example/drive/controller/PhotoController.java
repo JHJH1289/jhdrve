@@ -1,8 +1,9 @@
 package com.example.drive.controller;
 
 import com.example.drive.dto.FolderCreateRequest;
+import com.example.drive.dto.FolderOrderUpdateRequest;
+import com.example.drive.dto.FolderResponse;
 import com.example.drive.dto.PhotoResponse;
-import com.example.drive.dto.PhotoFolderUpdateRequest;
 import com.example.drive.dto.PhotoUploadBatchResponse;
 import com.example.drive.service.PhotoService;
 import com.example.drive.service.PhotoService.PhotoFile;
@@ -13,7 +14,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -55,7 +55,7 @@ public class PhotoController {
     }
 
     @GetMapping("/folders")
-    public ResponseEntity<List<String>> getFolders(Authentication authentication) {
+    public ResponseEntity<List<FolderResponse>> getFolders(Authentication authentication) {
         String username = authentication.getName();
         return ResponseEntity.ok(photoService.getFolders(username));
     }
@@ -70,6 +70,25 @@ public class PhotoController {
         return ResponseEntity.ok(Map.of("folderPath", folderPath));
     }
 
+    @DeleteMapping("/folders")
+    public ResponseEntity<Map<String, String>> deleteFolder(
+            Authentication authentication,
+            @RequestBody FolderCreateRequest request
+    ) {
+        String username = authentication.getName();
+        photoService.deleteEmptyFolder(username, request.getFolderPath());
+        return ResponseEntity.ok(Map.of("message", "폴더 삭제 완료"));
+    }
+
+    @PostMapping("/folders/order")
+    public ResponseEntity<List<FolderResponse>> updateFolderOrder(
+            Authentication authentication,
+            @RequestBody FolderOrderUpdateRequest request
+    ) {
+        String username = authentication.getName();
+        return ResponseEntity.ok(photoService.updateFolderOrder(username, request.getFolderPaths()));
+    }
+
     @DeleteMapping("/{id}")
     public ResponseEntity<Map<String, String>> delete(
             Authentication authentication,
@@ -78,21 +97,6 @@ public class PhotoController {
         String username = authentication.getName();
         photoService.deletePhoto(username, id, isAdmin(authentication));
         return ResponseEntity.ok(Map.of("message", "삭제 완료"));
-    }
-
-    @PatchMapping("/{id}/folder")
-    public ResponseEntity<PhotoResponse> updateFolder(
-            Authentication authentication,
-            @PathVariable("id") Long id,
-            @RequestBody PhotoFolderUpdateRequest request
-    ) {
-        String username = authentication.getName();
-        return ResponseEntity.ok(photoService.updatePhotoFolder(
-                username,
-                id,
-                request.getFolderPath(),
-                isAdmin(authentication)
-        ));
     }
 
     @GetMapping("/view/{id}")

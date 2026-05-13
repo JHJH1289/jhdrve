@@ -1,5 +1,6 @@
 package com.example.drive.service;
 
+import com.example.drive.dto.FolderResponse;
 import com.example.drive.dto.PhotoMetadata;
 import com.example.drive.dto.PhotoResponse;
 import com.example.drive.dto.PhotoUploadBatchResponse;
@@ -18,8 +19,9 @@ import org.springframework.web.multipart.MultipartFile;
 import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.Comparator;
+import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.TreeSet;
+import java.util.Set;
 
 @Service
 public class PhotoService {
@@ -52,7 +54,8 @@ public class PhotoService {
         }
 
         String normalizedFolderPath = normalizeFolderPath(folderPath);
-        ensureFolder(normalizedOwnerId, normalizedFolderPath);
+        PhotoFolder folder = ensureFolder(normalizedOwnerId, normalizedFolderPath);
+        folder.touch(LocalDateTime.now());
 
         List<PhotoUploadItemResponse> items = Arrays.stream(files)
                 .filter(file -> file != null && !file.isEmpty())
@@ -97,22 +100,23 @@ public class PhotoService {
                 .toList();
     }
 
-    public List<String> getFolders(String ownerId) {
+    @Transactional
+    public List<FolderResponse> getFolders(String ownerId) {
         String normalizedOwnerId = normalizeOwnerId(ownerId);
 
-        TreeSet<String> folders = new TreeSet<>();
-        folders.add(DEFAULT_FOLDER);
-        photoFolderRepository.findAllByOwnerId(normalizedOwnerId)
-                .stream()
-                .map(PhotoFolder::getFolderPath)
-                .map(this::normalizeFolderPath)
-                .forEach(folders::add);
+        Set<String> folderPaths = new LinkedHashSet<>();
+        folderPaths.add(DEFAULT_FOLDER);
         photoRepository.findDistinctFolderPathByOwnerId(normalizedOwnerId)
                 .stream()
                 .map(this::normalizeFolderPath)
-                .forEach(folders::add);
+                .forEach(folderPaths::add);
+        folderPaths.forEach(folderPath -> ensureFolder(normalizedOwnerId, folderPath));
 
-        return List.copyOf(folders);
+        return photoFolderRepository.findAllByOwnerId(normalizedOwnerId)
+                .stream()
+                .sorted(folderComparator())
+                .map(folder -> toFolderResponse(normalizedOwnerId, folder))
+                .toList();
     }
 
     @Transactional
@@ -124,24 +128,50 @@ public class PhotoService {
     }
 
     @Transactional
+    public void deleteEmptyFolder(String ownerId, String folderPath) {
+        String normalizedOwnerId = normalizeOwnerId(ownerId);
+        String normalizedFolderPath = normalizeFolderPath(folderPath);
+
+        if (DEFAULT_FOLDER.equals(normalizedFolderPath)) {
+            throw new IllegalArgumentException("Default folder cannot be deleted.");
+        }
+
+        long photoCount = photoRepository.countByOwnerIdAndFolderPath(normalizedOwnerId, normalizedFolderPath);
+        if (photoCount > 0) {
+            throw new IllegalArgumentException("Only empty folders can be deleted.");
+        }
+
+        PhotoFolder folder = photoFolderRepository.findByOwnerIdAndFolderPath(normalizedOwnerId, normalizedFolderPath)
+                .orElseThrow(() -> new IllegalArgumentException("Folder not found. folderPath=" + normalizedFolderPath));
+        photoFolderRepository.delete(folder);
+    }
+
+    @Transactional
+    public List<FolderResponse> updateFolderOrder(String ownerId, List<String> folderPaths) {
+        String normalizedOwnerId = normalizeOwnerId(ownerId);
+
+        if (folderPaths == null || folderPaths.isEmpty()) {
+            return getFolders(normalizedOwnerId);
+        }
+
+        int order = 0;
+        for (String folderPath : folderPaths) {
+            String normalizedFolderPath = normalizeFolderPath(folderPath);
+            PhotoFolder folder = ensureFolder(normalizedOwnerId, normalizedFolderPath);
+            folder.changeSortOrder(order++);
+        }
+
+        return getFolders(normalizedOwnerId);
+    }
+
+    @Transactional
     public void deletePhoto(String ownerId, Long id, boolean admin) {
         String normalizedOwnerId = normalizeOwnerId(ownerId);
         Photo photo = findAccessiblePhoto(normalizedOwnerId, id, admin);
 
+        ensureFolder(photo.getOwnerId(), photo.getFolderPath()).touch(LocalDateTime.now());
         storageService.delete(photo.getStorageKey());
         photoRepository.delete(photo);
-    }
-
-    @Transactional
-    public PhotoResponse updatePhotoFolder(String ownerId, Long id, String folderPath, boolean admin) {
-        String normalizedOwnerId = normalizeOwnerId(ownerId);
-        Photo photo = findAccessiblePhoto(normalizedOwnerId, id, admin);
-
-        String normalizedFolderPath = normalizeFolderPath(folderPath);
-        ensureFolder(photo.getOwnerId(), normalizedFolderPath);
-        photo.changeFolderPath(normalizedFolderPath);
-        Photo savedPhoto = photoRepository.saveAndFlush(photo);
-        return toPhotoResponse(savedPhoto);
     }
 
     private PhotoUploadItemResponse uploadOne(String ownerId, String folderPath, MultipartFile file) {
@@ -239,12 +269,49 @@ public class PhotoService {
         return "/api/photos/view/" + photoId;
     }
 
-    private void ensureFolder(String ownerId, String folderPath) {
-        if (photoFolderRepository.existsByOwnerIdAndFolderPath(ownerId, folderPath)) {
-            return;
-        }
+    private PhotoFolder ensureFolder(String ownerId, String folderPath) {
+        return photoFolderRepository.findByOwnerIdAndFolderPath(ownerId, folderPath)
+                .orElseGet(() -> {
+                    PhotoFolder folder = new PhotoFolder(ownerId, folderPath, LocalDateTime.now());
+                    folder.changeSortOrder(nextFolderSortOrder(ownerId));
+                    return photoFolderRepository.saveAndFlush(folder);
+                });
+    }
 
-        photoFolderRepository.saveAndFlush(new PhotoFolder(ownerId, folderPath, LocalDateTime.now()));
+    private FolderResponse toFolderResponse(String ownerId, PhotoFolder folder) {
+        LocalDateTime latestPhotoCreatedAt = photoRepository
+                .findLatestCreatedAtByOwnerIdAndFolderPath(ownerId, folder.getFolderPath())
+                .orElse(null);
+        LocalDateTime updatedAt = latestDate(folder.getUpdatedAt(), latestPhotoCreatedAt);
+
+        return new FolderResponse(
+                folder.getFolderPath(),
+                updatedAt,
+                folder.getSortOrder(),
+                photoRepository.countByOwnerIdAndFolderPath(ownerId, folder.getFolderPath())
+        );
+    }
+
+    private LocalDateTime latestDate(LocalDateTime first, LocalDateTime second) {
+        if (first == null) return second;
+        if (second == null) return first;
+        return first.isAfter(second) ? first : second;
+    }
+
+    private Comparator<PhotoFolder> folderComparator() {
+        return Comparator
+                .comparing(PhotoFolder::getSortOrder, Comparator.nullsLast(Comparator.naturalOrder()))
+                .thenComparing(PhotoFolder::getFolderPath);
+    }
+
+    private int nextFolderSortOrder(String ownerId) {
+        return photoFolderRepository.findAllByOwnerId(ownerId)
+                .stream()
+                .map(PhotoFolder::getSortOrder)
+                .filter(order -> order != null)
+                .max(Integer::compareTo)
+                .map(order -> order + 1)
+                .orElse(0);
     }
 
     private String normalizeOwnerId(String ownerId) {

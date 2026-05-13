@@ -143,6 +143,39 @@ select:focus {
   margin-top: 40px;
 }
 
+.photo-date-list {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
+.photo-date-group {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.photo-date-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  border-bottom: 1px solid #d7e4d9;
+  padding-bottom: 8px;
+}
+
+.photo-date-header h3 {
+  margin: 0;
+  color: #204b2b;
+  font-size: 18px;
+}
+
+.photo-date-header span {
+  color: #617368;
+  font-size: 13px;
+  white-space: nowrap;
+}
+
 .photo-list {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
@@ -167,7 +200,17 @@ select:focus {
 }
 
 .card-image-wrap {
+  display: block;
+  width: 100%;
+  padding: 0;
+  border-radius: 0;
+  background: transparent;
+  color: inherit;
   cursor: pointer;
+}
+
+.card-image-wrap:hover {
+  background: transparent;
 }
 
 .card-body {
@@ -311,15 +354,16 @@ select:focus {
 }
 
 .folder-card {
+  position: relative;
   background: #ffffff;
   border: 1px solid #d7e4d9;
-  border-radius: 16px;
-  padding: 28px 20px;
+  border-radius: 12px;
+  padding: 0;
   color: #1f2a1f;
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
-  gap: 12px;
+  align-items: stretch;
+  gap: 14px;
   text-align: left;
 }
 
@@ -328,15 +372,74 @@ select:focus {
   background: #f2faf3;
 }
 
+.folder-card.dragging {
+  opacity: 0.55;
+  transform: scale(0.98);
+}
+
+.folder-open-btn {
+  width: 100%;
+  min-height: 100%;
+  padding: 18px;
+  background: transparent;
+  color: inherit;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 12px;
+  text-align: left;
+}
+
+.folder-open-btn:hover {
+  background: transparent;
+}
+
+.folder-card.deletable .folder-open-btn {
+  padding-right: 70px;
+}
+
+.folder-card-top {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
 .folder-icon {
-  font-size: 40px;
+  flex: 0 0 auto;
+  font-size: 30px;
+  line-height: 1;
 }
 
 .folder-name {
+  min-width: 0;
   font-size: 18px;
   font-weight: 700;
   word-break: break-all;
   color: #245032;
+}
+
+.folder-date {
+  color: #617368;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.folder-delete-btn {
+  position: absolute;
+  right: 10px;
+  top: 10px;
+  z-index: 2;
+  padding: 7px 10px;
+  border-radius: 8px;
+  background: #f3dddd;
+  color: #8f1d15;
+  font-size: 12px;
+}
+
+.folder-delete-btn:hover {
+  background: #ebc8c8;
 }
 
 .back-btn {
@@ -455,14 +558,6 @@ select:focus {
   color: #b42318;
 }
 
-.viewer-folder-editor {
-  display: grid;
-  grid-template-columns: minmax(160px, 1fr) auto auto;
-  gap: 10px;
-  align-items: center;
-  margin-top: 16px;
-}
-
 .viewer-delete-btn {
   width: auto;
   margin-top: 0;
@@ -473,6 +568,84 @@ select:focus {
 }
 
 @media (max-width: 640px) {
+  .app,
+  .auth-page {
+    padding: 24px 12px;
+  }
+
+  .wrap,
+  .auth-card {
+    padding: 18px;
+  }
+
+  .folder-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  .folder-card {
+    min-height: 118px;
+  }
+
+  .folder-open-btn {
+    padding: 12px;
+    gap: 9px;
+  }
+
+  .folder-card-top {
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .folder-icon {
+    font-size: 24px;
+  }
+
+  .folder-name {
+    font-size: 15px;
+  }
+
+  .folder-date {
+    font-size: 12px;
+  }
+
+  .folder-delete-btn {
+    right: 8px;
+    top: 8px;
+    padding: 6px 8px;
+    font-size: 11px;
+  }
+
+  .photo-date-list {
+    gap: 24px;
+  }
+
+  .photo-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  .card-image {
+    height: 132px;
+  }
+
+  .card-body {
+    padding: 10px;
+  }
+
+  .name {
+    font-size: 13px;
+  }
+
+  .meta {
+    font-size: 12px;
+  }
+
+  .delete-btn {
+    padding: 9px 10px;
+    font-size: 13px;
+  }
+
   .photo-modal-backdrop {
     padding: 8px;
   }
@@ -501,9 +674,6 @@ select:focus {
     right: 0;
   }
 
-  .viewer-folder-editor {
-    grid-template-columns: 1fr;
-  }
 }
 
 .secondary-btn {

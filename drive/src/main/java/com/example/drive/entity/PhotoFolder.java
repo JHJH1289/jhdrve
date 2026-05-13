@@ -30,6 +30,10 @@ public class PhotoFolder {
     @Column(nullable = false)
     private LocalDateTime createdAt;
 
+    private LocalDateTime updatedAt;
+
+    private Integer sortOrder;
+
     protected PhotoFolder() {
     }
 
@@ -37,6 +41,8 @@ public class PhotoFolder {
         this.ownerId = ownerId;
         this.folderPath = folderPath;
         this.createdAt = createdAt;
+        this.updatedAt = createdAt;
+        this.sortOrder = 0;
     }
 
     public Long getId() {
@@ -53,5 +59,21 @@ public class PhotoFolder {
 
     public LocalDateTime getCreatedAt() {
         return createdAt;
+    }
+
+    public LocalDateTime getUpdatedAt() {
+        return updatedAt != null ? updatedAt : createdAt;
+    }
+
+    public Integer getSortOrder() {
+        return sortOrder;
+    }
+
+    public void touch(LocalDateTime updatedAt) {
+        this.updatedAt = updatedAt;
+    }
+
+    public void changeSortOrder(Integer sortOrder) {
+        this.sortOrder = sortOrder;
     }
 }

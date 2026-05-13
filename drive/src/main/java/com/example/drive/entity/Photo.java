@@ -169,7 +169,4 @@ public class Photo {
         return lensModel;
     }
 
-    public void changeFolderPath(String folderPath) {
-        this.folderPath = folderPath;
-    }
 }

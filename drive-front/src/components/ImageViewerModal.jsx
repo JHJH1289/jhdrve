@@ -2,11 +2,9 @@ import { useCallback, useEffect, useState } from "react";
 import { generateExifFrameBlob } from "../utils/exifFrame";
 import AuthImage from "./AuthImage";
 
-const DEFAULT_FOLDER = "\uAE30\uBCF8";
 const TEXT = {
   cameraMake: "\uCE74\uBA54\uB77C \uC81C\uC870\uC0AC",
   cameraModel: "\uCE74\uBA54\uB77C \uBAA8\uB378",
-  cancel: "\uCDE8\uC18C",
   close: "\uB2EB\uAE30",
   createdAt: "\uC5C5\uB85C\uB4DC\uC77C",
   delete: "\uC0AD\uC81C",
@@ -14,8 +12,6 @@ const TEXT = {
   exposureTime: "\uB178\uCD9C\uC2DC\uAC04",
   fileName: "\uD30C\uC77C\uBA85",
   folder: "\uD3F4\uB354",
-  folderEdit: "\uD3F4\uB354 \uC218\uC815",
-  folderName: "\uD3F4\uB354\uBA85",
   focalLength: "\uCD08\uC810\uAC70\uB9AC",
   frameApply: "EXIF \uD504\uB808\uC784 \uC801\uC6A9",
   frameBuilding: "EXIF \uD504\uB808\uC784 \uC0DD\uC131 \uC911...",
@@ -27,8 +23,6 @@ const TEXT = {
   originalView: "\uC6D0\uBCF8 \uBCF4\uAE30",
   previousPhoto: "\uC774\uC804 \uC0AC\uC9C4",
   resolution: "\uD574\uC0C1\uB3C4",
-  save: "\uC800\uC7A5",
-  saving: "\uC800\uC7A5 \uC911...",
   takenAt: "\uCD2C\uC601\uC77C",
 };
 
@@ -40,20 +34,15 @@ export default function ImageViewerModal({
   onPrev,
   onNext,
   onDelete,
-  onUpdateFolder,
 }) {
   const [frameMode, setFrameMode] = useState(true);
   const [frameUrl, setFrameUrl] = useState("");
   const [frameBlob, setFrameBlob] = useState(null);
   const [frameLoading, setFrameLoading] = useState(false);
   const [frameError, setFrameError] = useState("");
-  const [editingFolder, setEditingFolder] = useState(false);
-  const [folderDraft, setFolderDraft] = useState("");
-  const [savingFolder, setSavingFolder] = useState(false);
 
   const handleClose = useCallback(() => {
     setFrameMode(true);
-    setEditingFolder(false);
     onClose();
   }, [onClose]);
 
@@ -77,9 +66,6 @@ export default function ImageViewerModal({
     setFrameUrl("");
     setFrameBlob(null);
     setFrameError("");
-    setEditingFolder(false);
-    setSavingFolder(false);
-    setFolderDraft(photo?.folderPath || DEFAULT_FOLDER);
   }, [photo?.id, photo?.folderPath]);
 
   useEffect(() => {
@@ -137,18 +123,6 @@ export default function ImageViewerModal({
     downloadBlob(blob, photo.originalName || "photo");
   }
 
-  async function handleFolderSave() {
-    if (!onUpdateFolder || savingFolder) return;
-
-    try {
-      setSavingFolder(true);
-      await onUpdateFolder(photo.id, folderDraft);
-      setEditingFolder(false);
-    } finally {
-      setSavingFolder(false);
-    }
-  }
-
   return (
     <div className="photo-modal-backdrop" onClick={handleClose}>
       <div className="viewer-modal-content" onClick={(e) => e.stopPropagation()}>
@@ -202,32 +176,6 @@ export default function ImageViewerModal({
           <div><strong>{TEXT.resolution}:</strong> {photo.width || "-"} x {photo.height || "-"}</div>
         </div>
 
-        {editingFolder && (
-          <div className="viewer-folder-editor">
-            <input
-              type="text"
-              value={folderDraft}
-              onChange={(e) => setFolderDraft(e.target.value)}
-              placeholder={TEXT.folderName}
-              disabled={savingFolder}
-            />
-            <button type="button" onClick={handleFolderSave} disabled={savingFolder}>
-              {savingFolder ? TEXT.saving : TEXT.save}
-            </button>
-            <button
-              type="button"
-              className="secondary-btn"
-              onClick={() => {
-                setEditingFolder(false);
-                setFolderDraft(photo.folderPath || DEFAULT_FOLDER);
-              }}
-              disabled={savingFolder}
-            >
-              {TEXT.cancel}
-            </button>
-          </div>
-        )}
-
         <div className="viewer-actions">
           <button
             type="button"
@@ -239,9 +187,6 @@ export default function ImageViewerModal({
           </button>
           <button type="button" onClick={handleDownload} disabled={frameLoading && !frameBlob}>
             {TEXT.download}
-          </button>
-          <button type="button" className="secondary-btn" onClick={() => setEditingFolder((value) => !value)}>
-            {TEXT.folderEdit}
           </button>
           <button className="delete-btn viewer-delete-btn" type="button" onClick={() => onDelete(photo.id)}>
             {TEXT.delete}
