@@ -7,19 +7,26 @@ const TEXT = {
   folderLabel: "\uC5C5\uB85C\uB4DC \uD3F4\uB354",
   folderPlaceholder: "\uC608: \uC5EC\uD589/\uC81C\uC8FC\uB3C4",
   folderRequired: "\uD3F4\uB354\uBA85\uC744 \uC785\uB825\uD574\uC8FC\uC138\uC694.",
+  tagHelper: "공백이나 쉼표로 여러 태그를 구분합니다.",
+  tagLabel: "태그",
+  tagPlaceholder: "예: 여행 맛집 가족",
   title: "\uC0AC\uC9C4 \uC5C5\uB85C\uB4DC",
   upload: "\uC5C5\uB85C\uB4DC",
 };
 
+const SUGGESTED_TAGS = ["여행", "맛집", "꽃", "가족", "친구", "공연"];
+
 export default function UploadModal({ open, onClose, onUpload, defaultFolder = "" }) {
   const initialFolderPath = open ? defaultFolder : "";
   const [folderPath, setFolderPath] = useState(initialFolderPath);
+  const [tagText, setTagText] = useState("");
   const [files, setFiles] = useState([]);
 
   if (!open) return null;
 
   function resetForm() {
     setFolderPath(initialFolderPath);
+    setTagText("");
     setFiles([]);
   }
 
@@ -40,8 +47,16 @@ export default function UploadModal({ open, onClose, onUpload, defaultFolder = "
       return;
     }
 
-    await onUpload(trimmedFolderPath, files);
+    await onUpload(trimmedFolderPath, files, tagText);
     resetForm();
+  }
+
+  function addSuggestedTag(tag) {
+    setTagText((current) => {
+      const tags = parseTags(current);
+      if (tags.includes(tag)) return current;
+      return [...tags, tag].join(" ");
+    });
   }
 
   return (
@@ -68,6 +83,24 @@ export default function UploadModal({ open, onClose, onUpload, defaultFolder = "
           <input type="file" multiple accept="image/*" onChange={handleChange} />
         </div>
 
+        <div className="row">
+          <label>{TEXT.tagLabel}</label>
+          <input
+            type="text"
+            value={tagText}
+            onChange={(event) => setTagText(event.target.value)}
+            placeholder={TEXT.tagPlaceholder}
+          />
+          <div className="upload-tag-suggestions">
+            {SUGGESTED_TAGS.map((tag) => (
+              <button type="button" key={tag} onClick={() => addSuggestedTag(tag)}>
+                #{tag}
+              </button>
+            ))}
+          </div>
+          <p className="summary upload-tag-helper">{TEXT.tagHelper}</p>
+        </div>
+
         <div className="viewer-actions">
           <button type="button" onClick={handleSubmit}>
             {TEXT.upload}
@@ -81,4 +114,11 @@ export default function UploadModal({ open, onClose, onUpload, defaultFolder = "
       </div>
     </div>
   );
+}
+
+function parseTags(value) {
+  return value
+    .split(/[,#\s]+/)
+    .map((tag) => tag.trim())
+    .filter(Boolean);
 }

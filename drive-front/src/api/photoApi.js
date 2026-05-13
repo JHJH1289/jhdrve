@@ -136,13 +136,17 @@ export async function updateFolderOrder(folderPaths) {
   return normalizeFolders(result);
 }
 
-export async function uploadPhotos(folderPath, files) {
+export async function uploadPhotos(folderPath, files, tags = "") {
   const formData = new FormData();
 
   files.forEach((file) => formData.append("files", file));
 
   if (folderPath) {
     formData.append("folderPath", folderPath);
+  }
+
+  if (tags.trim()) {
+    formData.append("tags", tags.trim());
   }
 
   const result = await request("/api/photos/upload", {

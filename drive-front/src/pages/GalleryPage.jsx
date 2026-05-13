@@ -20,6 +20,7 @@ const TEXT = {
   duplicateScanLoading: "\uC911\uBCF5 \uC0AC\uC9C4 \uCC3E\uB294 \uC911...",
   folderList: "\uD3F4\uB354 \uBAA9\uB85D",
   folderSearchPlaceholder: "\uD3F4\uB354\uBA85\uC774\uB098 \uD0DC\uADF8\uB85C \uAC80\uC0C9",
+  folderTools: "폴더 도구",
   logout: "\uB85C\uADF8\uC544\uC6C3",
   adminMode: "\uAD00\uB9AC\uC790\uBAA8\uB4DC",
   photoUpload: "\uC0AC\uC9C4 \uC5C5\uB85C\uB4DC",
@@ -47,6 +48,7 @@ export default function GalleryPage({ username, role, onLogout, onOpenAdmin }) {
   const [folderSearch, setFolderSearch] = useState("");
   const [photoSearch, setPhotoSearch] = useState("");
   const [renamingFolder, setRenamingFolder] = useState("");
+  const [folderToolsOpen, setFolderToolsOpen] = useState(false);
 
   const visibleFolders = useMemo(() => {
     const keyword = folderSearch.trim().toLowerCase();
@@ -110,7 +112,7 @@ export default function GalleryPage({ username, role, onLogout, onOpenAdmin }) {
     }
   }
 
-  async function handleUpload(folderPath, files) {
+  async function handleUpload(folderPath, files, tags = "") {
     try {
       if (!files || files.length === 0) {
         setStatus("\uC5C5\uB85C\uB4DC\uD560 \uD30C\uC77C\uC744 \uC120\uD0DD\uD558\uC138\uC694.");
@@ -118,7 +120,7 @@ export default function GalleryPage({ username, role, onLogout, onOpenAdmin }) {
       }
 
       setStatus("\uC5C5\uB85C\uB4DC \uC911...");
-      await uploadPhotos(folderPath, files);
+      await uploadPhotos(folderPath, files, tags);
       setStatus("\uC5C5\uB85C\uB4DC \uC644\uB8CC");
       setUploadModalOpen(false);
 
@@ -397,17 +399,38 @@ export default function GalleryPage({ username, role, onLogout, onOpenAdmin }) {
           <>
             <div className="section-header folder-section-header">
               <h2>{TEXT.folderList}</h2>
-              <div className="folder-header-actions">
-                <input
-                  type="text"
-                  className="folder-search-input"
-                  value={folderSearch}
-                  onChange={(event) => setFolderSearch(event.target.value)}
-                  placeholder={TEXT.folderSearchPlaceholder}
-                />
-                <button type="button" className="secondary-btn" onClick={handleDeleteDuplicates} disabled={loadingDuplicates || deletingDuplicates}>
-                  {TEXT.deleteDuplicates}
+              <div className="folder-header-actions" onClick={(event) => event.stopPropagation()}>
+                <button
+                  type="button"
+                  className={folderToolsOpen ? "folder-menu-btn active" : "folder-menu-btn"}
+                  aria-label={TEXT.folderTools}
+                  aria-expanded={folderToolsOpen}
+                  onClick={() => setFolderToolsOpen((value) => !value)}
+                >
+                  <span aria-hidden="true"></span>
+                  <span aria-hidden="true"></span>
+                  <span aria-hidden="true"></span>
                 </button>
+
+                {folderToolsOpen && (
+                  <div className="folder-tools-menu">
+                    <input
+                      type="text"
+                      className="folder-search-input"
+                      value={folderSearch}
+                      onChange={(event) => setFolderSearch(event.target.value)}
+                      placeholder={TEXT.folderSearchPlaceholder}
+                    />
+                    <button
+                      type="button"
+                      className="secondary-btn"
+                      onClick={handleDeleteDuplicates}
+                      disabled={loadingDuplicates || deletingDuplicates}
+                    >
+                      {TEXT.deleteDuplicates}
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
             <FolderGrid

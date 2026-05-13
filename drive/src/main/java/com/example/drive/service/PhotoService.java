@@ -58,8 +58,9 @@ public class PhotoService {
     }
 
     @Transactional
-    public PhotoUploadBatchResponse upload(String ownerId, String folderPath, MultipartFile[] files) {
+    public PhotoUploadBatchResponse upload(String ownerId, String folderPath, String tags, MultipartFile[] files) {
         String normalizedOwnerId = normalizeOwnerId(ownerId);
+        String normalizedTags = String.join(",", normalizeTags(tags));
 
         if (files == null || files.length == 0) {
             throw new IllegalArgumentException("No files were provided.");
@@ -71,7 +72,7 @@ public class PhotoService {
 
         List<PhotoUploadItemResponse> items = Arrays.stream(files)
                 .filter(file -> file != null && !file.isEmpty())
-                .map(file -> uploadOne(normalizedOwnerId, normalizedFolderPath, file))
+                .map(file -> uploadOne(normalizedOwnerId, normalizedFolderPath, normalizedTags, file))
                 .toList();
 
         if (items.isEmpty()) {
@@ -413,7 +414,7 @@ public class PhotoService {
         return groups;
     }
 
-    private PhotoUploadItemResponse uploadOne(String ownerId, String folderPath, MultipartFile file) {
+    private PhotoUploadItemResponse uploadOne(String ownerId, String folderPath, String tags, MultipartFile file) {
         PhotoMetadata metadata = photoMetadataService.extract(file);
         StoredFile storedFile = storageService.store(file);
 
@@ -436,6 +437,7 @@ public class PhotoService {
                 metadata.getIso(),
                 metadata.getLensModel()
         );
+        photo.changeTags(tags);
 
         Photo savedPhoto = photoRepository.save(photo);
         return new PhotoUploadItemResponse(

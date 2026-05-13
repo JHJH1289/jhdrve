@@ -193,11 +193,38 @@ select {
 }
 
 .folder-header-actions {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: flex-end;
   gap: 10px;
   flex-wrap: wrap;
+}
+
+.folder-tools-menu {
+  position: absolute;
+  top: 38px;
+  right: 0;
+  z-index: 20;
+  display: grid;
+  gap: 8px;
+  width: min(320px, calc(100vw - 48px));
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface);
+  box-shadow: 0 12px 28px rgba(27, 55, 36, 0.14);
+  padding: 10px;
+}
+
+.folder-tools-menu .folder-search-input {
+  width: 100%;
+}
+
+.folder-tools-menu .secondary-btn {
+  width: 100%;
+  min-height: 38px;
+  padding: 9px 12px;
+  font-size: 13px;
 }
 
 .folder-search-input,
@@ -1030,6 +1057,31 @@ select {
   color: #ffffff;
 }
 
+.upload-tag-suggestions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.upload-tag-suggestions button {
+  min-height: 30px;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: #21472b;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 6px 10px;
+}
+
+.upload-tag-suggestions button:hover {
+  background: #cde1d0;
+}
+
+.upload-tag-helper {
+  margin: 0;
+  font-size: 12px;
+}
+
 .tag-modal-content .delete-btn {
   width: auto;
   margin-top: 0;
@@ -1332,12 +1384,14 @@ select {
   }
 
   .folder-section-header {
-    align-items: stretch;
-    flex-direction: column;
+    align-items: center;
+    flex-direction: row;
+    justify-content: space-between;
   }
 
   .folder-header-actions {
-    justify-content: stretch;
+    flex: 0 0 auto;
+    justify-content: flex-end;
   }
 
   .folder-search-input,
@@ -1345,7 +1399,13 @@ select {
     width: 100%;
   }
 
-  .folder-header-actions button {
+  .folder-tools-menu {
+    top: 34px;
+    right: 0;
+    width: min(300px, calc(100vw - 40px));
+  }
+
+  .folder-tools-menu button {
     flex: 1 1 140px;
   }
 

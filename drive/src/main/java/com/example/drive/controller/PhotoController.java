@@ -42,10 +42,11 @@ public class PhotoController {
     public ResponseEntity<PhotoUploadBatchResponse> upload(
             Authentication authentication,
             @RequestParam(value = "folderPath", required = false) String folderPath,
+            @RequestParam(value = "tags", required = false) String tags,
             @RequestParam("files") MultipartFile[] files
     ) {
         String username = authentication.getName();
-        return ResponseEntity.ok(photoService.upload(username, folderPath, files));
+        return ResponseEntity.ok(photoService.upload(username, folderPath, tags, files));
     }
 
     @GetMapping
