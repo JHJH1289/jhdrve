@@ -365,6 +365,7 @@ select:focus {
   align-items: stretch;
   gap: 14px;
   text-align: left;
+  overflow: hidden;
 }
 
 .folder-card:hover {
@@ -379,12 +380,11 @@ select:focus {
 
 .folder-open-btn {
   width: 100%;
-  min-height: 100%;
   padding: 18px;
   background: transparent;
   color: inherit;
   display: flex;
-  flex: 1;
+  flex: 0 0 auto;
   flex-direction: column;
   align-items: stretch;
   gap: 12px;
@@ -393,10 +393,6 @@ select:focus {
 
 .folder-open-btn:hover {
   background: transparent;
-}
-
-.folder-card.deletable .folder-open-btn {
-  padding-right: 70px;
 }
 
 .folder-card-top {
@@ -426,19 +422,34 @@ select:focus {
   line-height: 1.4;
 }
 
-.folder-delete-btn {
-  position: absolute;
-  right: 10px;
-  top: 10px;
-  z-index: 2;
-  padding: 7px 10px;
-  border-radius: 8px;
-  background: #f3dddd;
-  color: #8f1d15;
-  font-size: 12px;
+.folder-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  width: 100%;
+  padding: 0 18px 18px;
 }
 
-.folder-delete-btn:hover {
+.folder-manage-btn {
+  min-height: 34px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: #dcebdd;
+  color: #21472b;
+  font-size: 13px;
+  line-height: 1.2;
+}
+
+.folder-manage-btn:hover {
+  background: #cde1d0;
+}
+
+.folder-manage-btn.danger {
+  background: #f3dddd;
+  color: #8f1d15;
+}
+
+.folder-manage-btn.danger:hover {
   background: #ebc8c8;
 }
 
@@ -609,10 +620,14 @@ select:focus {
     font-size: 12px;
   }
 
-  .folder-delete-btn {
-    right: 8px;
-    top: 8px;
-    padding: 6px 8px;
+  .folder-actions {
+    gap: 6px;
+    padding: 0 12px 12px;
+  }
+
+  .folder-manage-btn {
+    min-height: 32px;
+    padding: 7px 8px;
     font-size: 11px;
   }
 

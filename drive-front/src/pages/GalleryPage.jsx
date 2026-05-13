@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { createFolder, deleteFolder, deletePhoto, fetchFolders, fetchPhotos, updateFolderOrder, uploadPhotos } from "../api/photoApi";
+import { createFolder, deleteFolder, deletePhoto, fetchFolders, fetchPhotos, renameFolder, updateFolderOrder, uploadPhotos } from "../api/photoApi";
 import FolderGrid from "../components/FolderGrid";
 import ImageViewerModal from "../components/ImageViewerModal";
 import PhotoList from "../components/PhotoList";
@@ -7,23 +7,23 @@ import PhotoStatus from "../components/PhotoStatus";
 import UploadModal from "../components/UploadModal";
 
 const DEFAULT_FOLDER = "\uAE30\uBCF8";
-const DEFAULT_FOLDER_ITEM = { folderPath: DEFAULT_FOLDER, updatedAt: null, sortOrder: 0, photoCount: 0 };
 const TEXT = {
   account: "\uACC4\uC815",
   appTitle: "\uC0AC\uC9C4 \uB4DC\uB77C\uC774\uBE0C",
   backToFolders: "\u2190 \uD3F4\uB354 \uBAA9\uB85D",
   createFolder: "\uD3F4\uB354 \uC0DD\uC131",
   createFolderPrompt: "\uC0DD\uC131\uD560 \uD3F4\uB354\uBA85\uC744 \uC785\uB825\uD558\uC138\uC694.",
-  deleteFolderConfirm: "\uBE48 \uD3F4\uB354\uB97C \uC0AD\uC81C\uD560\uAE4C\uC694?",
+  deleteFolderConfirm: "\uD3F4\uB354\uB97C \uC0AD\uC81C\uD560\uAE4C\uC694? \uBE44\uC5B4 \uC788\uB294 \uD3F4\uB354\uB9CC \uC0AD\uC81C\uB429\uB2C8\uB2E4.",
   folderList: "\uD3F4\uB354 \uBAA9\uB85D",
   logout: "\uB85C\uADF8\uC544\uC6C3",
   photoUpload: "\uC0AC\uC9C4 \uC5C5\uB85C\uB4DC",
+  renameFolderPrompt: "\uBCC0\uACBD\uD560 \uD3F4\uB354\uBA85\uC744 \uC785\uB825\uD558\uC138\uC694.",
   totalPrefix: "총",
   totalSuffix: "장",
 };
 
 export default function GalleryPage({ username, onLogout }) {
-  const [folders, setFolders] = useState([DEFAULT_FOLDER_ITEM]);
+  const [folders, setFolders] = useState([]);
   const [selectedFolder, setSelectedFolder] = useState(null);
   const [photos, setPhotos] = useState([]);
   const [status, setStatus] = useState("");
@@ -38,7 +38,7 @@ export default function GalleryPage({ username, onLogout }) {
   async function loadFolders() {
     try {
       const result = await fetchFolders();
-      setFolders(result && result.length ? result : [DEFAULT_FOLDER_ITEM]);
+      setFolders(result && result.length ? result : []);
     } catch (error) {
       setStatus(`\uD3F4\uB354 \uC870\uD68C \uC624\uB958: ${error.message}`);
     }
@@ -136,6 +136,19 @@ export default function GalleryPage({ username, onLogout }) {
     }
   }
 
+  async function handleRenameFolder(folderPath) {
+    const nextFolderPath = window.prompt(TEXT.renameFolderPrompt, folderPath);
+    if (nextFolderPath === null) return;
+
+    try {
+      const result = await renameFolder(folderPath, nextFolderPath);
+      showNotice(`'${folderPath}' \uD3F4\uB354\uBA85\uC744 '${result.folderPath}'\uB85C \uBCC0\uACBD\uD588\uC2B5\uB2C8\uB2E4.`);
+      await loadFolders();
+    } catch (error) {
+      showNotice(`\uD3F4\uB354\uBA85 \uBCC0\uACBD \uC2E4\uD328: ${error.message}`, "error");
+    }
+  }
+
   function handleLogoutClick() {
     localStorage.removeItem("token");
     localStorage.removeItem("username");
@@ -174,7 +187,7 @@ export default function GalleryPage({ username, onLogout }) {
       try {
         const result = await fetchFolders();
         if (!cancelled) {
-          setFolders(result && result.length ? result : [DEFAULT_FOLDER_ITEM]);
+          setFolders(result && result.length ? result : []);
         }
       } catch (error) {
         if (!cancelled) {
@@ -254,6 +267,7 @@ export default function GalleryPage({ username, onLogout }) {
               onOpenFolder={setSelectedFolder}
               onReorder={handleReorderFolders}
               onDeleteFolder={handleDeleteFolder}
+              onRenameFolder={handleRenameFolder}
             />
           </>
         ) : (

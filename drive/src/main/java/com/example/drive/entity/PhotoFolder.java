@@ -73,6 +73,11 @@ public class PhotoFolder {
         this.updatedAt = updatedAt;
     }
 
+    public void rename(String folderPath, LocalDateTime updatedAt) {
+        this.folderPath = folderPath;
+        this.updatedAt = updatedAt;
+    }
+
     public void changeSortOrder(Integer sortOrder) {
         this.sortOrder = sortOrder;
     }

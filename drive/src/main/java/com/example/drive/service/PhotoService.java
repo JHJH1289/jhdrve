@@ -105,7 +105,6 @@ public class PhotoService {
         String normalizedOwnerId = normalizeOwnerId(ownerId);
 
         Set<String> folderPaths = new LinkedHashSet<>();
-        folderPaths.add(DEFAULT_FOLDER);
         photoRepository.findDistinctFolderPathByOwnerId(normalizedOwnerId)
                 .stream()
                 .map(this::normalizeFolderPath)
@@ -132,10 +131,6 @@ public class PhotoService {
         String normalizedOwnerId = normalizeOwnerId(ownerId);
         String normalizedFolderPath = normalizeFolderPath(folderPath);
 
-        if (DEFAULT_FOLDER.equals(normalizedFolderPath)) {
-            throw new IllegalArgumentException("Default folder cannot be deleted.");
-        }
-
         long photoCount = photoRepository.countByOwnerIdAndFolderPath(normalizedOwnerId, normalizedFolderPath);
         if (photoCount > 0) {
             throw new IllegalArgumentException("Only empty folders can be deleted.");
@@ -144,6 +139,40 @@ public class PhotoService {
         PhotoFolder folder = photoFolderRepository.findByOwnerIdAndFolderPath(normalizedOwnerId, normalizedFolderPath)
                 .orElseThrow(() -> new IllegalArgumentException("Folder not found. folderPath=" + normalizedFolderPath));
         photoFolderRepository.delete(folder);
+    }
+
+    @Transactional
+    public String renameFolder(String ownerId, String currentFolderPath, String nextFolderPath) {
+        String normalizedOwnerId = normalizeOwnerId(ownerId);
+        String normalizedCurrentFolderPath = normalizeFolderPath(currentFolderPath);
+
+        if (nextFolderPath == null || nextFolderPath.isBlank()) {
+            throw new IllegalArgumentException("Folder name is required.");
+        }
+
+        String normalizedNextFolderPath = normalizeFolderPath(nextFolderPath);
+
+        if (normalizedCurrentFolderPath.equals(normalizedNextFolderPath)) {
+            return normalizedCurrentFolderPath;
+        }
+
+        if (photoFolderRepository.findByOwnerIdAndFolderPath(normalizedOwnerId, normalizedNextFolderPath).isPresent()) {
+            throw new IllegalArgumentException("Folder already exists. folderPath=" + normalizedNextFolderPath);
+        }
+
+        PhotoFolder folder = photoFolderRepository
+                .findByOwnerIdAndFolderPath(normalizedOwnerId, normalizedCurrentFolderPath)
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "Folder not found. folderPath=" + normalizedCurrentFolderPath
+                ));
+        folder.rename(normalizedNextFolderPath, LocalDateTime.now());
+        photoRepository.updateFolderPathByOwnerId(
+                normalizedOwnerId,
+                normalizedCurrentFolderPath,
+                normalizedNextFolderPath
+        );
+
+        return normalizedNextFolderPath;
     }
 
     @Transactional

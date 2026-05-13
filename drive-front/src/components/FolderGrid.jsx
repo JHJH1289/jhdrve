@@ -1,13 +1,12 @@
 import { useRef, useState } from "react";
 
-const DEFAULT_FOLDER = "\uAE30\uBCF8";
 const TEXT = {
   delete: "\uC0AD\uC81C",
   empty: "\uD3F4\uB354\uAC00 \uC5C6\uC2B5\uB2C8\uB2E4.",
-  modifiedAt: "\uCD5C\uC885 \uC218\uC815",
+  rename: "\uC774\uB984 \uBCC0\uACBD",
 };
 
-export default function FolderGrid({ folders, onOpenFolder, onReorder, onDeleteFolder }) {
+export default function FolderGrid({ folders, onOpenFolder, onReorder, onDeleteFolder, onRenameFolder }) {
   const [draggingPath, setDraggingPath] = useState("");
   const suppressClickRef = useRef(false);
 
@@ -39,15 +38,13 @@ export default function FolderGrid({ folders, onOpenFolder, onReorder, onDeleteF
   return (
     <div className="folder-grid">
       {folders.map((folder) => {
-        const canDelete = folder.folderPath !== DEFAULT_FOLDER && Number(folder.photoCount) === 0;
-
         return (
           <div
             key={folder.folderPath}
             className={[
               "folder-card",
               draggingPath === folder.folderPath ? "dragging" : "",
-              canDelete ? "deletable" : "",
+              "manageable",
             ].filter(Boolean).join(" ")}
             draggable
             onDragStart={(event) => {
@@ -83,16 +80,23 @@ export default function FolderGrid({ folders, onOpenFolder, onReorder, onDeleteF
                 <div className="folder-icon" aria-hidden="true">{"\uD83D\uDCC1"}</div>
                 <div className="folder-name">{folder.folderPath}</div>
               </div>
-              <div className="folder-date">
-                {TEXT.modifiedAt} {formatDate(folder.updatedAt)}
-              </div>
+              <div className="folder-date">{formatDate(folder.updatedAt)}</div>
             </button>
 
-            {canDelete && (
+            <div className="folder-actions">
               <button
                 type="button"
-                className="folder-delete-btn"
-                aria-label={`${folder.folderPath} ${TEXT.delete}`}
+                className="folder-manage-btn"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  onRenameFolder(folder.folderPath);
+                }}
+              >
+                {TEXT.rename}
+              </button>
+              <button
+                type="button"
+                className="folder-manage-btn danger"
                 onClick={(event) => {
                   event.stopPropagation();
                   onDeleteFolder(folder.folderPath);
@@ -100,7 +104,7 @@ export default function FolderGrid({ folders, onOpenFolder, onReorder, onDeleteF
               >
                 {TEXT.delete}
               </button>
-            )}
+            </div>
           </div>
         );
       })}
@@ -118,7 +122,5 @@ function formatDate(value) {
     year: "numeric",
     month: "2-digit",
     day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
   }).format(date);
 }

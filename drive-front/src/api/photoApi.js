@@ -106,6 +106,16 @@ export async function deleteFolder(folderPath) {
   });
 }
 
+export async function renameFolder(currentFolderPath, nextFolderPath) {
+  return request("/api/photos/folders/rename", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ currentFolderPath, nextFolderPath }),
+  });
+}
+
 export async function updateFolderOrder(folderPaths) {
   const result = await request("/api/photos/folders/order", {
     method: "POST",

@@ -18,7 +18,6 @@ export default function PhotoList({ photos, onDelete, onOpen }) {
         <section className="photo-date-group" key={group.key}>
           <div className="photo-date-header">
             <h3>{group.label}</h3>
-            <span>{group.items.length}\uC7A5</span>
           </div>
 
           <div className="photo-list">

@@ -2,6 +2,7 @@ package com.example.drive.controller;
 
 import com.example.drive.dto.FolderCreateRequest;
 import com.example.drive.dto.FolderOrderUpdateRequest;
+import com.example.drive.dto.FolderRenameRequest;
 import com.example.drive.dto.FolderResponse;
 import com.example.drive.dto.PhotoResponse;
 import com.example.drive.dto.PhotoUploadBatchResponse;
@@ -78,6 +79,20 @@ public class PhotoController {
         String username = authentication.getName();
         photoService.deleteEmptyFolder(username, request.getFolderPath());
         return ResponseEntity.ok(Map.of("message", "폴더 삭제 완료"));
+    }
+
+    @PostMapping("/folders/rename")
+    public ResponseEntity<Map<String, String>> renameFolder(
+            Authentication authentication,
+            @RequestBody FolderRenameRequest request
+    ) {
+        String username = authentication.getName();
+        String folderPath = photoService.renameFolder(
+                username,
+                request.getCurrentFolderPath(),
+                request.getNextFolderPath()
+        );
+        return ResponseEntity.ok(Map.of("folderPath", folderPath));
     }
 
     @PostMapping("/folders/order")
