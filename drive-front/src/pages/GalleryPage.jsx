@@ -9,8 +9,6 @@ import PhotoStatus from "../components/PhotoStatus";
 import UploadModal from "../components/UploadModal";
 
 const TEXT = {
-  account: "\uACC4\uC815",
-  appTitle: "\uC0AC\uC9C4 \uB4DC\uB77C\uC774\uBE0C",
   backToFolders: "\u2190 \uD3F4\uB354 \uBAA9\uB85D",
   deleteFolderConfirm: "\uD3F4\uB354\uB97C \uC0AD\uC81C\uD560\uAE4C\uC694? \uBE44\uC5B4 \uC788\uB294 \uD3F4\uB354\uB9CC \uC0AD\uC81C\uB429\uB2C8\uB2E4.",
   deleteDuplicates: "\uC911\uBCF5 \uC0AC\uC9C4 \uC815\uB9AC",
@@ -377,8 +375,7 @@ export default function GalleryPage({ username, role, onLogout, onOpenAdmin }) {
       <div className="wrap">
         <div className="top-bar">
           <div>
-            <h1>{TEXT.appTitle}</h1>
-            <p className="subtitle">{TEXT.account}: {username}</p>
+            <h1>{username} 드라이브</h1>
           </div>
 
           <div className="user-box">

@@ -168,19 +168,36 @@ export default function ImageViewerModal({
         {frameError && <div className="viewer-inline-error">{frameError}</div>}
 
         <div className="photo-modal-info">
-          <div><strong>{TEXT.fileName}:</strong> {photo.originalName}</div>
-          <div><strong>{TEXT.folder}:</strong> {photo.folderPath}</div>
-          <div><strong>{TEXT.cameraMake}:</strong> {photo.cameraMake || "-"}</div>
-          <div><strong>{TEXT.cameraModel}:</strong> {photo.cameraModel || "-"}</div>
-          <div><strong>{TEXT.focalLength}:</strong> {photo.focalLength || "-"}</div>
-          <div><strong>F-stop:</strong> {displayFNumber}</div>
-          <div><strong>{TEXT.exposureTime}:</strong> {photo.exposureTime || "-"}</div>
-          <div><strong>{TEXT.iso}:</strong> {photo.iso || "-"}</div>
-          <div><strong>{TEXT.lensModel}:</strong> {photo.lensModel || "-"}</div>
-          <div><strong>{TEXT.takenAt}:</strong> {photo.takenAt || "-"}</div>
-          <div><strong>{TEXT.createdAt}:</strong> {photo.createdAt || "-"}</div>
-          <div><strong>{TEXT.resolution}:</strong> {photo.width || "-"} x {photo.height || "-"}</div>
-          <div><strong>태그:</strong> {tags.length ? tags.map((tag) => `#${tag}`).join(" ") : "-"}</div>
+          <div className="photo-info-section file">
+            <strong>{photo.originalName}</strong>
+            <span>{photo.folderPath}</span>
+          </div>
+
+          <div className="photo-info-section">
+            <span>{photo.cameraMake || "-"}</span>
+            <span>{photo.cameraModel || "-"}</span>
+            <span>{photo.lensModel || "-"}</span>
+          </div>
+
+          <div className="photo-info-section">
+            <span>{photo.focalLength || "-"}</span>
+            <span>{displayFNumber}</span>
+            <span>{photo.exposureTime || "-"}</span>
+            <span>{photo.iso || "-"}</span>
+          </div>
+
+          <div className="photo-modal-tags">
+            <strong>태그:</strong>
+            {tags.length ? (
+              <span className="folder-tags viewer-tags">
+                {tags.map((tag) => (
+                  <span key={tag}>#{tag}</span>
+                ))}
+              </span>
+            ) : (
+              <span>-</span>
+            )}
+          </div>
         </div>
 
         <div className="viewer-actions">
