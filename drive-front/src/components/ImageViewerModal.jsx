@@ -68,11 +68,9 @@ export default function ImageViewerModal({
   }, [photo]);
 
   useEffect(() => {
-    if (!open || !photo || !frameMode) return undefined;
-    if (frameUrl || frameBlob) return undefined;
+    if (!open || !photo || frameBlob || !canGenerateExifFrame(photo)) return undefined;
 
     let cancelled = false;
-    let currentUrl = "";
 
     async function buildFrame() {
       try {
@@ -83,9 +81,7 @@ export default function ImageViewerModal({
         const blob = await generateExifFrameBlob(photo);
         if (cancelled) return;
 
-        currentUrl = URL.createObjectURL(blob);
         setFrameBlob(blob);
-        setFrameUrl(currentUrl);
       } catch (error) {
         if (!cancelled) {
           setFrameMode(false);
@@ -102,15 +98,24 @@ export default function ImageViewerModal({
 
     return () => {
       cancelled = true;
-      if (currentUrl) {
-        URL.revokeObjectURL(currentUrl);
-      }
     };
-  }, [frameBlob, frameMode, frameUrl, open, photo]);
+  }, [frameBlob, open, photo]);
+
+  useEffect(() => {
+    if (!frameBlob) {
+      setFrameUrl("");
+      return undefined;
+    }
+
+    const objectUrl = URL.createObjectURL(frameBlob);
+    setFrameUrl(objectUrl);
+    return () => URL.revokeObjectURL(objectUrl);
+  }, [frameBlob]);
 
   if (!photo) return null;
 
   const displayFNumber = photo.fNumber || photo.fnumber || "-";
+  const tags = Array.isArray(photo.tags) ? photo.tags : [];
   const showFrame = frameMode && frameUrl && !frameError;
   const frameAvailable = canGenerateExifFrame(photo);
 
@@ -175,6 +180,7 @@ export default function ImageViewerModal({
           <div><strong>{TEXT.takenAt}:</strong> {photo.takenAt || "-"}</div>
           <div><strong>{TEXT.createdAt}:</strong> {photo.createdAt || "-"}</div>
           <div><strong>{TEXT.resolution}:</strong> {photo.width || "-"} x {photo.height || "-"}</div>
+          <div><strong>태그:</strong> {tags.length ? tags.map((tag) => `#${tag}`).join(" ") : "-"}</div>
         </div>
 
         <div className="viewer-actions">

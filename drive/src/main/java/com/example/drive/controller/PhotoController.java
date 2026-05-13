@@ -6,6 +6,7 @@ import com.example.drive.dto.FolderOrderUpdateRequest;
 import com.example.drive.dto.FolderRenameRequest;
 import com.example.drive.dto.FolderResponse;
 import com.example.drive.dto.PhotoResponse;
+import com.example.drive.dto.PhotoTagUpdateRequest;
 import com.example.drive.dto.PhotoUploadBatchResponse;
 import com.example.drive.service.PhotoService;
 import com.example.drive.service.PhotoService.PhotoFile;
@@ -113,6 +114,24 @@ public class PhotoController {
         String username = authentication.getName();
         photoService.deletePhoto(username, id, isAdmin(authentication));
         return ResponseEntity.ok(Map.of("message", "삭제 완료"));
+    }
+
+    @PostMapping("/tags")
+    public ResponseEntity<List<PhotoResponse>> addTags(
+            Authentication authentication,
+            @RequestBody PhotoTagUpdateRequest request
+    ) {
+        String username = authentication.getName();
+        return ResponseEntity.ok(photoService.addTags(username, request.getPhotoIds(), request.getTags()));
+    }
+
+    @PostMapping("/tags/remove")
+    public ResponseEntity<List<PhotoResponse>> removeTags(
+            Authentication authentication,
+            @RequestBody PhotoTagUpdateRequest request
+    ) {
+        String username = authentication.getName();
+        return ResponseEntity.ok(photoService.removeTags(username, request.getPhotoIds(), request.getTags()));
     }
 
     @PostMapping("/duplicates/delete")

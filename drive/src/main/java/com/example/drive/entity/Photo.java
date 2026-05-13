@@ -56,6 +56,9 @@ public class Photo {
     @Column(length = 200)
     private String lensModel;
 
+    @Column(length = 1000)
+    private String tags;
+
     protected Photo() {
     }
 
@@ -167,6 +170,14 @@ public class Photo {
 
     public String getLensModel() {
         return lensModel;
+    }
+
+    public String getTags() {
+        return tags;
+    }
+
+    public void changeTags(String tags) {
+        this.tags = tags;
     }
 
 }

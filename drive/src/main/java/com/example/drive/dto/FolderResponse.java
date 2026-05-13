@@ -10,6 +10,7 @@ public class FolderResponse {
     private final LocalDateTime updatedAt;
     private final Integer sortOrder;
     private final long photoCount;
+    private final List<String> tags;
     private final List<String> previewImageUrls;
 
     public FolderResponse(
@@ -18,6 +19,7 @@ public class FolderResponse {
             LocalDateTime updatedAt,
             Integer sortOrder,
             long photoCount,
+            List<String> tags,
             List<String> previewImageUrls
     ) {
         this.ownerId = ownerId;
@@ -25,6 +27,7 @@ public class FolderResponse {
         this.updatedAt = updatedAt;
         this.sortOrder = sortOrder;
         this.photoCount = photoCount;
+        this.tags = tags;
         this.previewImageUrls = previewImageUrls;
     }
 
@@ -46,6 +49,10 @@ public class FolderResponse {
 
     public long getPhotoCount() {
         return photoCount;
+    }
+
+    public List<String> getTags() {
+        return tags;
     }
 
     public List<String> getPreviewImageUrls() {

@@ -166,6 +166,30 @@ export async function deletePhoto(id) {
   });
 }
 
+export async function addPhotoTags(photoIds, tags) {
+  const result = await request("/api/photos/tags", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ photoIds, tags }),
+  });
+
+  return Array.isArray(result) ? result.map(normalizePhoto) : [];
+}
+
+export async function removePhotoTags(photoIds, tags) {
+  const result = await request("/api/photos/tags/remove", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ photoIds, tags }),
+  });
+
+  return Array.isArray(result) ? result.map(normalizePhoto) : [];
+}
+
 export async function deleteDuplicatePhotos() {
   return request("/api/photos/duplicates/delete", {
     method: "POST",
@@ -207,7 +231,7 @@ function normalizeFolders(result) {
   return Array.isArray(result)
     ? result.map((folder, index) => {
         if (typeof folder === "string") {
-          return { ownerId: "", folderPath: folder, updatedAt: null, sortOrder: index, photoCount: 0, previewImageUrls: [] };
+          return { ownerId: "", folderPath: folder, updatedAt: null, sortOrder: index, photoCount: 0, tags: [], previewImageUrls: [] };
         }
 
         return {
@@ -216,6 +240,7 @@ function normalizeFolders(result) {
           updatedAt: folder.updatedAt || null,
           sortOrder: folder.sortOrder ?? index,
           photoCount: folder.photoCount ?? 0,
+          tags: Array.isArray(folder.tags) ? folder.tags : [],
           previewImageUrls: Array.isArray(folder.previewImageUrls)
             ? folder.previewImageUrls.map(normalizeImageUrl)
             : [],

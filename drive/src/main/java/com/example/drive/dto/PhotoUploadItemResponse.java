@@ -1,6 +1,7 @@
 package com.example.drive.dto;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 public class PhotoUploadItemResponse {
 
@@ -21,6 +22,7 @@ public class PhotoUploadItemResponse {
     private final String exposureTime;
     private final Integer iso;
     private final String lensModel;
+    private final List<String> tags;
 
     public PhotoUploadItemResponse(
             Long id,
@@ -39,7 +41,8 @@ public class PhotoUploadItemResponse {
             String fNumber,
             String exposureTime,
             Integer iso,
-            String lensModel
+            String lensModel,
+            List<String> tags
     ) {
         this.id = id;
         this.ownerId = ownerId;
@@ -58,6 +61,7 @@ public class PhotoUploadItemResponse {
         this.exposureTime = exposureTime;
         this.iso = iso;
         this.lensModel = lensModel;
+        this.tags = tags;
     }
 
     public Long getId() {
@@ -126,5 +130,9 @@ public class PhotoUploadItemResponse {
 
     public String getLensModel() {
         return lensModel;
+    }
+
+    public List<String> getTags() {
+        return tags;
     }
 }

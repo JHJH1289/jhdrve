@@ -33,6 +33,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Stream;
 
 @Service
 public class PhotoService {
@@ -258,6 +259,90 @@ public class PhotoService {
     }
 
     @Transactional
+    public List<PhotoResponse> addTags(String ownerId, List<Long> photoIds, String tags) {
+        String normalizedOwnerId = normalizeOwnerId(ownerId);
+        List<String> nextTags = normalizeTags(tags);
+
+        if (photoIds == null || photoIds.isEmpty()) {
+            throw new IllegalArgumentException("Photo ids are required.");
+        }
+
+        if (nextTags.isEmpty()) {
+            throw new IllegalArgumentException("Tags are required.");
+        }
+
+        List<Photo> photos = photoRepository.findAllById(photoIds)
+                .stream()
+                .filter(photo -> normalizedOwnerId.equals(normalizeOwnerId(photo.getOwnerId())))
+                .toList();
+
+        if (photos.isEmpty()) {
+            throw new IllegalArgumentException("No accessible photos were found.");
+        }
+
+        Set<String> touchedFolders = new LinkedHashSet<>();
+        for (Photo photo : photos) {
+            LinkedHashSet<String> mergedTags = new LinkedHashSet<>(splitTags(photo.getTags()));
+            mergedTags.addAll(nextTags);
+            photo.changeTags(String.join(",", mergedTags));
+            touchedFolders.add(photo.getFolderPath());
+        }
+
+        LocalDateTime now = LocalDateTime.now();
+        for (String folderPath : touchedFolders) {
+            ensureFolder(normalizedOwnerId, folderPath).touch(now);
+        }
+
+        return photos.stream()
+                .sorted(photoComparator())
+                .map(this::toPhotoResponse)
+                .toList();
+    }
+
+    @Transactional
+    public List<PhotoResponse> removeTags(String ownerId, List<Long> photoIds, String tags) {
+        String normalizedOwnerId = normalizeOwnerId(ownerId);
+        Set<String> tagsToRemove = new LinkedHashSet<>(normalizeTags(tags));
+
+        if (photoIds == null || photoIds.isEmpty()) {
+            throw new IllegalArgumentException("Photo ids are required.");
+        }
+
+        if (tagsToRemove.isEmpty()) {
+            throw new IllegalArgumentException("Tags are required.");
+        }
+
+        List<Photo> photos = photoRepository.findAllById(photoIds)
+                .stream()
+                .filter(photo -> normalizedOwnerId.equals(normalizeOwnerId(photo.getOwnerId())))
+                .toList();
+
+        if (photos.isEmpty()) {
+            throw new IllegalArgumentException("No accessible photos were found.");
+        }
+
+        Set<String> touchedFolders = new LinkedHashSet<>();
+        for (Photo photo : photos) {
+            List<String> remainingTags = splitTags(photo.getTags())
+                    .stream()
+                    .filter(tag -> !tagsToRemove.contains(tag))
+                    .toList();
+            photo.changeTags(String.join(",", remainingTags));
+            touchedFolders.add(photo.getFolderPath());
+        }
+
+        LocalDateTime now = LocalDateTime.now();
+        for (String folderPath : touchedFolders) {
+            ensureFolder(normalizedOwnerId, folderPath).touch(now);
+        }
+
+        return photos.stream()
+                .sorted(photoComparator())
+                .map(this::toPhotoResponse)
+                .toList();
+    }
+
+    @Transactional
     public int deleteDuplicatePhotos(String ownerId) {
         String normalizedOwnerId = normalizeOwnerId(ownerId);
         List<DuplicatePhotoGroup> groups = findDuplicatePhotoGroups(normalizedOwnerId);
@@ -370,7 +455,8 @@ public class PhotoService {
                 savedPhoto.getFNumber(),
                 savedPhoto.getExposureTime(),
                 savedPhoto.getIso(),
-                savedPhoto.getLensModel()
+                savedPhoto.getLensModel(),
+                splitTags(savedPhoto.getTags())
         );
     }
 
@@ -394,7 +480,8 @@ public class PhotoService {
                 photo.getFNumber(),
                 photo.getExposureTime(),
                 photo.getIso(),
-                photo.getLensModel()
+                photo.getLensModel(),
+                splitTags(photo.getTags())
         );
     }
 
@@ -451,19 +538,51 @@ public class PhotoService {
                 .orElse(null);
         LocalDateTime updatedAt = latestDate(folder.getUpdatedAt(), latestPhotoCreatedAt);
 
+        List<Photo> folderPhotos = photoRepository.findAllByOwnerIdAndFolderPath(ownerId, folder.getFolderPath());
+
         return new FolderResponse(
                 ownerId,
                 folder.getFolderPath(),
                 updatedAt,
                 folder.getSortOrder(),
-                photoRepository.countByOwnerIdAndFolderPath(ownerId, folder.getFolderPath()),
-                photoRepository.findAllByOwnerIdAndFolderPath(ownerId, folder.getFolderPath())
+                folderPhotos.size(),
+                folderPhotos.stream()
+                        .flatMap(photo -> splitTags(photo.getTags()).stream())
+                        .distinct()
+                        .sorted()
+                        .toList(),
+                folderPhotos
                         .stream()
                         .sorted(photoComparator())
                         .limit(3)
                         .map(photo -> buildImageUrl(photo.getId()))
                         .toList()
         );
+    }
+
+    private List<String> normalizeTags(String tags) {
+        if (tags == null || tags.isBlank()) {
+            return List.of();
+        }
+
+        return Stream.of(tags.split("[,#\\s]+"))
+                .map(String::trim)
+                .filter(tag -> !tag.isBlank())
+                .distinct()
+                .limit(20)
+                .toList();
+    }
+
+    private List<String> splitTags(String tags) {
+        if (tags == null || tags.isBlank()) {
+            return List.of();
+        }
+
+        return Stream.of(tags.split(","))
+                .map(String::trim)
+                .filter(tag -> !tag.isBlank())
+                .distinct()
+                .toList();
     }
 
     private LocalDateTime latestDate(LocalDateTime first, LocalDateTime second) {
