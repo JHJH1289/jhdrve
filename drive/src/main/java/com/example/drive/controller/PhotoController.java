@@ -165,6 +165,20 @@ public class PhotoController {
                 .body(photoFile.resource());
     }
 
+    @GetMapping("/thumbnail/{id}")
+    public ResponseEntity<Resource> thumbnail(
+            Authentication authentication,
+            @PathVariable("id") Long id
+    ) {
+        String username = authentication.getName();
+        PhotoFile photoFile = photoService.getPhotoThumbnailFile(username, id, isAdmin(authentication));
+
+        return ResponseEntity.ok()
+                .contentType(MediaType.parseMediaType(photoFile.contentType()))
+                .header(HttpHeaders.CONTENT_DISPOSITION, "inline")
+                .body(photoFile.resource());
+    }
+
     private boolean isAdmin(Authentication authentication) {
         return authentication.getAuthorities()
                 .stream()

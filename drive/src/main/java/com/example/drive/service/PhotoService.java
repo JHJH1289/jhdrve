@@ -44,17 +44,20 @@ public class PhotoService {
     private final PhotoRepository photoRepository;
     private final PhotoFolderRepository photoFolderRepository;
     private final PhotoMetadataService photoMetadataService;
+    private final PhotoThumbnailService photoThumbnailService;
 
     public PhotoService(
             StorageService storageService,
             PhotoRepository photoRepository,
             PhotoFolderRepository photoFolderRepository,
-            PhotoMetadataService photoMetadataService
+            PhotoMetadataService photoMetadataService,
+            PhotoThumbnailService photoThumbnailService
     ) {
         this.storageService = storageService;
         this.photoRepository = photoRepository;
         this.photoFolderRepository = photoFolderRepository;
         this.photoMetadataService = photoMetadataService;
+        this.photoThumbnailService = photoThumbnailService;
     }
 
     @Transactional
@@ -111,6 +114,20 @@ public class PhotoService {
                 .sorted(photoComparator())
                 .map(this::toPhotoResponse)
                 .toList();
+    }
+
+    @Transactional
+    public PhotoFile getPhotoThumbnailFile(String ownerId, Long id, boolean admin) {
+        String normalizedOwnerId = normalizeOwnerId(ownerId);
+        Photo photo = findAccessiblePhoto(normalizedOwnerId, id, admin);
+
+        String thumbnailStorageKey = ensureThumbnail(photo);
+        if (thumbnailStorageKey == null) {
+            return getPhotoFile(ownerId, id, admin);
+        }
+
+        Resource resource = storageService.loadAsResource(thumbnailStorageKey);
+        return new PhotoFile(resource, MediaType.IMAGE_JPEG_VALUE);
     }
 
     @Transactional
@@ -189,7 +206,7 @@ public class PhotoService {
 
         List<Photo> photos = photoRepository.findAllByOwnerIdAndFolderPath(normalizedOwnerId, normalizedFolderPath);
         for (Photo photo : photos) {
-            storageService.delete(photo.getStorageKey());
+            deletePhotoFiles(photo);
         }
         photoRepository.deleteAll(photos);
 
@@ -255,7 +272,7 @@ public class PhotoService {
         Photo photo = findAccessiblePhoto(normalizedOwnerId, id, admin);
 
         ensureFolder(photo.getOwnerId(), photo.getFolderPath()).touch(LocalDateTime.now());
-        storageService.delete(photo.getStorageKey());
+        deletePhotoFiles(photo);
         photoRepository.delete(photo);
     }
 
@@ -354,7 +371,7 @@ public class PhotoService {
         Set<String> touchedFolders = new LinkedHashSet<>();
         for (Photo duplicate : duplicates) {
             touchedFolders.add(duplicate.getFolderPath());
-            storageService.delete(duplicate.getStorageKey());
+            deletePhotoFiles(duplicate);
         }
 
         photoRepository.deleteAll(duplicates);
@@ -439,6 +456,9 @@ public class PhotoService {
         );
         photo.changeTags(tags);
 
+        String thumbnailStorageKey = photoThumbnailService.createThumbnail(storedFile.getStorageKey());
+        photo.changeThumbnailStorageKey(thumbnailStorageKey);
+
         Photo savedPhoto = photoRepository.save(photo);
         return new PhotoUploadItemResponse(
                 savedPhoto.getId(),
@@ -448,6 +468,7 @@ public class PhotoService {
                 savedPhoto.getStorageKey(),
                 savedPhoto.getFileSize(),
                 buildImageUrl(savedPhoto.getId()),
+                buildThumbnailUrl(savedPhoto.getId()),
                 savedPhoto.getWidth(),
                 savedPhoto.getHeight(),
                 savedPhoto.getTakenAt(),
@@ -472,6 +493,7 @@ public class PhotoService {
                 photo.getContentType(),
                 photo.getFileSize(),
                 buildImageUrl(photo.getId()),
+                buildThumbnailUrl(photo.getId()),
                 photo.getCreatedAt(),
                 photo.getWidth(),
                 photo.getHeight(),
@@ -510,6 +532,32 @@ public class PhotoService {
 
     private String buildImageUrl(Long photoId) {
         return "/api/photos/view/" + photoId;
+    }
+
+    private String buildThumbnailUrl(Long photoId) {
+        return "/api/photos/thumbnail/" + photoId;
+    }
+
+    private String ensureThumbnail(Photo photo) {
+        if (photo.getThumbnailStorageKey() != null && !photo.getThumbnailStorageKey().isBlank()) {
+            try {
+                storageService.loadAsResource(photo.getThumbnailStorageKey());
+                return photo.getThumbnailStorageKey();
+            } catch (RuntimeException ignored) {
+                photo.changeThumbnailStorageKey(null);
+            }
+        }
+
+        String thumbnailStorageKey = photoThumbnailService.createThumbnail(photo.getStorageKey());
+        photo.changeThumbnailStorageKey(thumbnailStorageKey);
+        return thumbnailStorageKey;
+    }
+
+    private void deletePhotoFiles(Photo photo) {
+        if (photo.getThumbnailStorageKey() != null && !photo.getThumbnailStorageKey().isBlank()) {
+            storageService.delete(photo.getThumbnailStorageKey());
+        }
+        storageService.delete(photo.getStorageKey());
     }
 
     private String fileHash(Photo photo) {
@@ -557,7 +605,7 @@ public class PhotoService {
                         .stream()
                         .sorted(photoComparator())
                         .limit(3)
-                        .map(photo -> buildImageUrl(photo.getId()))
+                        .map(photo -> buildThumbnailUrl(photo.getId()))
                         .toList()
         );
     }

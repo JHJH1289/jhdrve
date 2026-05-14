@@ -1,5 +1,6 @@
 import { memo, useCallback, useRef, useState } from "react";
 import AuthImage from "./AuthImage";
+import { formatShortDate } from "../utils/photoCollection";
 
 const TEXT = {
   delete: "\uC0AD\uC81C",
@@ -191,7 +192,7 @@ const FolderItem = memo(function FolderItem({
             )}
           </div>
         </div>
-        <div className="folder-date">{formatDate(folder.updatedAt)}</div>
+        <div className="folder-date">{formatShortDate(folder.updatedAt)}</div>
         {Array.isArray(folder.tags) && folder.tags.length > 0 && (
           <div className="folder-tags">
             {folder.tags.slice(0, 4).map((tag) => (
@@ -212,15 +213,3 @@ function buildPreviewSlots(previewImageUrls = []) {
   return [0, 1, 2].map((index) => previewImageUrls[index % previewImageUrls.length]);
 }
 
-function formatDate(value) {
-  if (!value) return "-";
-
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
-
-  return new Intl.DateTimeFormat("ko-KR", {
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).format(date);
-}

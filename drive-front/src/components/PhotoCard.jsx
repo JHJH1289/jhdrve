@@ -16,7 +16,7 @@ export default function PhotoCard({ photo, selected, onOpen, onSelect }) {
       <button className="card-image-wrap" type="button" onClick={onOpen} aria-label={photo.originalName}>
         <AuthImage
           className="card-image"
-          src={photo.imageUrl}
+          src={photo.thumbnailUrl || photo.imageUrl}
           alt={photo.originalName}
         />
         {tags.length > 0 && (

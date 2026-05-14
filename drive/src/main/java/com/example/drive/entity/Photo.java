@@ -20,6 +20,9 @@ public class Photo {
     @Column(nullable = false, unique = true, length = 500)
     private String storageKey;
 
+    @Column(length = 500)
+    private String thumbnailStorageKey;
+
     @Column(nullable = false)
     private String contentType;
 
@@ -114,6 +117,14 @@ public class Photo {
 
     public String getStorageKey() {
         return storageKey;
+    }
+
+    public String getThumbnailStorageKey() {
+        return thumbnailStorageKey;
+    }
+
+    public void changeThumbnailStorageKey(String thumbnailStorageKey) {
+        this.thumbnailStorageKey = thumbnailStorageKey;
     }
 
     public String getContentType() {

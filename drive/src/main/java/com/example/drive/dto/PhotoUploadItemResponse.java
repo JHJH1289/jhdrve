@@ -12,6 +12,7 @@ public class PhotoUploadItemResponse {
     private final String storageKey;
     private final long size;
     private final String imageUrl;
+    private final String thumbnailUrl;
     private final Integer width;
     private final Integer height;
     private final LocalDateTime takenAt;
@@ -32,6 +33,7 @@ public class PhotoUploadItemResponse {
             String storageKey,
             long size,
             String imageUrl,
+            String thumbnailUrl,
             Integer width,
             Integer height,
             LocalDateTime takenAt,
@@ -51,6 +53,7 @@ public class PhotoUploadItemResponse {
         this.storageKey = storageKey;
         this.size = size;
         this.imageUrl = imageUrl;
+        this.thumbnailUrl = thumbnailUrl;
         this.width = width;
         this.height = height;
         this.takenAt = takenAt;
@@ -90,6 +93,10 @@ public class PhotoUploadItemResponse {
 
     public String getImageUrl() {
         return imageUrl;
+    }
+
+    public String getThumbnailUrl() {
+        return thumbnailUrl;
     }
 
     public Integer getWidth() {

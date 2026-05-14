@@ -58,10 +58,7 @@ export async function fetchPhotos(folderPath = DEFAULT_FOLDER) {
   });
 
   return Array.isArray(result)
-    ? result.map((photo) => ({
-        ...photo,
-        imageUrl: normalizeImageUrl(photo.imageUrl),
-      }))
+    ? result.map(normalizePhoto)
     : [];
 }
 
@@ -71,10 +68,7 @@ export async function fetchAdminPhotos() {
   });
 
   return Array.isArray(result)
-    ? result.map((photo) => ({
-        ...photo,
-        imageUrl: normalizeImageUrl(photo.imageUrl),
-      }))
+    ? result.map(normalizePhoto)
     : [];
 }
 
@@ -155,10 +149,7 @@ export async function uploadPhotos(folderPath, files, tags = "") {
   });
 
   if (result?.items) {
-    result.items = result.items.map((item) => ({
-      ...item,
-      imageUrl: normalizeImageUrl(item.imageUrl),
-    }));
+    result.items = result.items.map(normalizePhoto);
   }
 
   return result;
@@ -258,6 +249,7 @@ function normalizePhoto(photo) {
     ? {
         ...photo,
         imageUrl: normalizeImageUrl(photo.imageUrl),
+        thumbnailUrl: normalizeImageUrl(photo.thumbnailUrl),
       }
     : null;
 }

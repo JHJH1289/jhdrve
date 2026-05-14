@@ -13,6 +13,7 @@ public class PhotoResponse {
     private final String contentType;
     private final long fileSize;
     private final String imageUrl;
+    private final String thumbnailUrl;
     private final LocalDateTime createdAt;
     private final Integer width;
     private final Integer height;
@@ -35,6 +36,7 @@ public class PhotoResponse {
             String contentType,
             long fileSize,
             String imageUrl,
+            String thumbnailUrl,
             LocalDateTime createdAt,
             Integer width,
             Integer height,
@@ -56,6 +58,7 @@ public class PhotoResponse {
         this.contentType = contentType;
         this.fileSize = fileSize;
         this.imageUrl = imageUrl;
+        this.thumbnailUrl = thumbnailUrl;
         this.createdAt = createdAt;
         this.width = width;
         this.height = height;
@@ -78,6 +81,7 @@ public class PhotoResponse {
     public String getContentType() { return contentType; }
     public long getFileSize() { return fileSize; }
     public String getImageUrl() { return imageUrl; }
+    public String getThumbnailUrl() { return thumbnailUrl; }
     public LocalDateTime getCreatedAt() { return createdAt; }
     public Integer getWidth() { return width; }
     public Integer getHeight() { return height; }

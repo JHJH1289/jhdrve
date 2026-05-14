@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { deleteAdminFolder, fetchAdminFolders } from "../api/photoApi";
-import AuthImage from "../components/AuthImage";
+import AdminFolderList from "../components/admin/AdminFolderList";
+import { useAutoDismissNotice } from "../hooks/useAutoDismissNotice";
 
 const TEXT = {
   account: "\uACC4\uC815",
@@ -15,7 +16,7 @@ const TEXT = {
 export default function AdminPage({ username, onBackToGallery, onLogout }) {
   const [folders, setFolders] = useState([]);
   const [status, setStatus] = useState("");
-  const [notice, setNotice] = useState(null);
+  const [notice, setNotice] = useAutoDismissNotice();
 
   const groupedFolders = useMemo(() => {
     return folders.reduce((groups, folder) => {
@@ -72,12 +73,6 @@ export default function AdminPage({ username, onBackToGallery, onLogout }) {
     };
   }, []);
 
-  useEffect(() => {
-    if (!notice) return undefined;
-    const timer = window.setTimeout(() => setNotice(null), 2500);
-    return () => window.clearTimeout(timer);
-  }, [notice]);
-
   return (
     <div className="app">
       {notice && <div className="top-notice">{notice}</div>}
@@ -101,52 +96,14 @@ export default function AdminPage({ username, onBackToGallery, onLogout }) {
 
         {status && <div className="status-box">{status}</div>}
 
-        {folders.length === 0 && !status ? (
-          <p className="admin-empty">{TEXT.empty}</p>
-        ) : (
-          <div className="admin-folder-list">
-            {Object.entries(groupedFolders).map(([ownerId, ownerFolders]) => (
-              <section className="admin-owner-section" key={ownerId}>
-                <div className="admin-owner-header">
-                  <h2>{ownerId}</h2>
-                </div>
-
-                <div className="admin-folder-grid">
-                  {ownerFolders.map((folder) => (
-                    <article className="admin-folder-card" key={`${folder.ownerId}-${folder.folderPath}`}>
-                      <FolderPreview images={folder.previewImageUrls} />
-                      <div className="admin-folder-meta">
-                        <h3>{folder.folderPath}</h3>
-                      </div>
-                      <button
-                        type="button"
-                        className="folder-manage-btn danger"
-                        onClick={() => handleDeleteFolder(folder)}
-                      >
-                        {TEXT.delete}
-                      </button>
-                    </article>
-                  ))}
-                </div>
-              </section>
-            ))}
-          </div>
-        )}
+        <AdminFolderList
+          labels={TEXT}
+          folders={folders}
+          groupedFolders={groupedFolders}
+          status={status}
+          onDeleteFolder={handleDeleteFolder}
+        />
       </div>
-    </div>
-  );
-}
-
-function FolderPreview({ images = [] }) {
-  const image = images[0];
-
-  return (
-    <div className="admin-folder-preview">
-      {image ? (
-        <AuthImage className="admin-folder-preview-image" src={image} alt="" />
-      ) : (
-        <div className="admin-folder-preview-empty" />
-      )}
     </div>
   );
 }

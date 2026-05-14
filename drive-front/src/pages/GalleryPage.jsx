@@ -1,12 +1,14 @@
 import { useEffect, useMemo, useState } from "react";
 import { addPhotoTags, deleteDuplicatePhotos, deleteFolder, deletePhoto, fetchDuplicatePhotos, fetchFolders, fetchPhotos, removePhotoTags, renameFolder, updateFolderOrder, uploadPhotos } from "../api/photoApi";
 import DuplicatePhotoModal from "../components/DuplicatePhotoModal";
-import FolderGrid from "../components/FolderGrid";
 import FolderRenameModal from "../components/FolderRenameModal";
+import GalleryFolderSection from "../components/gallery/GalleryFolderSection";
+import GalleryPhotoSection from "../components/gallery/GalleryPhotoSection";
 import ImageViewerModal from "../components/ImageViewerModal";
-import PhotoList from "../components/PhotoList";
 import PhotoStatus from "../components/PhotoStatus";
 import UploadModal from "../components/UploadModal";
+import { useAutoDismissNotice } from "../hooks/useAutoDismissNotice";
+import { filterFolders, filterPhotos, sortPhotosByDate } from "../utils/photoCollection";
 
 const TEXT = {
   backToFolders: "\u2190 \uD3F4\uB354 \uBAA9\uB85D",
@@ -35,7 +37,7 @@ export default function GalleryPage({ username, role, onLogout, onOpenAdmin }) {
   const [selectedFolder, setSelectedFolder] = useState(null);
   const [photos, setPhotos] = useState([]);
   const [status, setStatus] = useState("");
-  const [notice, setNotice] = useState(null);
+  const [notice, setNotice] = useAutoDismissNotice();
   const [uploadModalOpen, setUploadModalOpen] = useState(false);
   const [viewerIndex, setViewerIndex] = useState(null);
   const [duplicateGroups, setDuplicateGroups] = useState([]);
@@ -49,41 +51,15 @@ export default function GalleryPage({ username, role, onLogout, onOpenAdmin }) {
   const [folderToolsOpen, setFolderToolsOpen] = useState(false);
 
   const visibleFolders = useMemo(() => {
-    const keyword = folderSearch.trim().toLowerCase();
-    if (!keyword) return folders;
-
-    return folders.filter((folder) => {
-      const folderName = (folder.folderPath || "").toLowerCase();
-      const tags = Array.isArray(folder.tags) ? folder.tags : [];
-      return folderName.includes(keyword)
-        || tags.some((tag) => String(tag).toLowerCase().includes(keyword));
-    });
+    return filterFolders(folders, folderSearch);
   }, [folderSearch, folders]);
 
   const visiblePhotos = useMemo(() => {
-    const keyword = photoSearch.trim().toLowerCase();
-    if (!keyword) return photos;
-
-    return photos.filter((photo) => {
-      const fileName = (photo.originalName || "").toLowerCase();
-      const tags = Array.isArray(photo.tags) ? photo.tags : [];
-      return fileName.includes(keyword)
-        || tags.some((tag) => String(tag).toLowerCase().includes(keyword));
-    });
+    return filterPhotos(photos, photoSearch);
   }, [photoSearch, photos]);
 
   const sortedPhotos = useMemo(() => {
-    return [...visiblePhotos].sort((first, second) => {
-      const firstTime = getPhotoTime(first);
-      const secondTime = getPhotoTime(second);
-      const direction = photoSortOrder === "oldest" ? 1 : -1;
-
-      if (firstTime !== secondTime) {
-        return (firstTime - secondTime) * direction;
-      }
-
-      return ((first.id || 0) - (second.id || 0)) * direction;
-    });
+    return sortPhotosByDate(visiblePhotos, photoSortOrder);
   }, [photoSortOrder, visiblePhotos]);
 
   function showNotice(message, type = "success") {
@@ -297,6 +273,13 @@ export default function GalleryPage({ username, role, onLogout, onOpenAdmin }) {
     setViewerIndex(null);
   }
 
+  function closeFolder() {
+    setSelectedFolder(null);
+    setPhotos([]);
+    setPhotoSearch("");
+    setViewerIndex(null);
+  }
+
   function showPrev() {
     if (viewerIndex === null || sortedPhotos.length === 0) return;
     setViewerIndex((prev) => (prev === 0 ? sortedPhotos.length - 1 : prev - 1));
@@ -306,13 +289,6 @@ export default function GalleryPage({ username, role, onLogout, onOpenAdmin }) {
     if (viewerIndex === null || sortedPhotos.length === 0) return;
     setViewerIndex((prev) => (prev === sortedPhotos.length - 1 ? 0 : prev + 1));
   }
-
-  useEffect(() => {
-    if (!notice) return undefined;
-
-    const timer = window.setTimeout(() => setNotice(null), 2500);
-    return () => window.clearTimeout(timer);
-  }, [notice]);
 
   useEffect(() => {
     let cancelled = false;
@@ -393,99 +369,39 @@ export default function GalleryPage({ username, role, onLogout, onOpenAdmin }) {
         <PhotoStatus status={status} />
 
         {!selectedFolder ? (
-          <>
-            <div className="section-header folder-section-header">
-              <h2>{TEXT.folderList}</h2>
-              <div className="folder-header-actions" onClick={(event) => event.stopPropagation()}>
-                <button
-                  type="button"
-                  className={folderToolsOpen ? "folder-menu-btn active" : "folder-menu-btn"}
-                  aria-label={TEXT.folderTools}
-                  aria-expanded={folderToolsOpen}
-                  onClick={() => setFolderToolsOpen((value) => !value)}
-                >
-                  <span aria-hidden="true"></span>
-                  <span aria-hidden="true"></span>
-                  <span aria-hidden="true"></span>
-                </button>
-
-                {folderToolsOpen && (
-                  <div className="folder-tools-menu">
-                    <input
-                      type="text"
-                      className="folder-search-input"
-                      value={folderSearch}
-                      onChange={(event) => setFolderSearch(event.target.value)}
-                      placeholder={TEXT.folderSearchPlaceholder}
-                    />
-                    <button
-                      type="button"
-                      className="secondary-btn"
-                      onClick={handleDeleteDuplicates}
-                      disabled={loadingDuplicates || deletingDuplicates}
-                    >
-                      {TEXT.deleteDuplicates}
-                    </button>
-                  </div>
-                )}
-              </div>
-            </div>
-            <FolderGrid
-              folders={visibleFolders}
-              onOpenFolder={setSelectedFolder}
-              onReorder={folderSearch.trim() ? () => {} : handleReorderFolders}
-              onDeleteFolder={handleDeleteFolder}
-              onRenameFolder={setRenamingFolder}
-            />
-          </>
+          <GalleryFolderSection
+            labels={TEXT}
+            folders={visibleFolders}
+            searchText={folderSearch}
+            toolsOpen={folderToolsOpen}
+            deletingDuplicates={deletingDuplicates}
+            loadingDuplicates={loadingDuplicates}
+            onDeleteDuplicates={handleDeleteDuplicates}
+            onDeleteFolder={handleDeleteFolder}
+            onOpenFolder={setSelectedFolder}
+            onRenameFolder={setRenamingFolder}
+            onReorderFolders={handleReorderFolders}
+            onSearchChange={setFolderSearch}
+            onToggleTools={() => setFolderToolsOpen((value) => !value)}
+          />
         ) : (
-          <>
-            <div className="section-header">
-              <button
-                type="button"
-                className="back-btn"
-                onClick={() => {
-                  setSelectedFolder(null);
-                  setPhotos([]);
-                  setPhotoSearch("");
-                  setViewerIndex(null);
-                }}
-              >
-                {TEXT.backToFolders}
-              </button>
-              <div className="photo-folder-header">
-                <h2>{selectedFolder}</h2>
-                <label className="photo-sort-control">
-                  <span>{TEXT.sortLabel}</span>
-                  <select
-                    value={photoSortOrder}
-                    onChange={(event) => setPhotoSortOrder(event.target.value)}
-                  >
-                    <option value="newest">{TEXT.sortNewest}</option>
-                    <option value="oldest">{TEXT.sortOldest}</option>
-                  </select>
-                </label>
-              </div>
-              <input
-                type="text"
-                className="photo-search-input"
-                value={photoSearch}
-                onChange={(event) => {
-                  setPhotoSearch(event.target.value);
-                  setViewerIndex(null);
-                }}
-                placeholder={TEXT.photoSearchPlaceholder}
-              />
-            </div>
-
-            <PhotoList
-              photos={sortedPhotos}
-              onAddTagsSelected={handleAddPhotoTags}
-              onDeleteTagsSelected={handleDeletePhotoTags}
-              onDeleteSelected={handleDeletePhotos}
-              onOpen={openViewer}
-            />
-          </>
+          <GalleryPhotoSection
+            labels={TEXT}
+            folderPath={selectedFolder}
+            photos={sortedPhotos}
+            searchText={photoSearch}
+            sortOrder={photoSortOrder}
+            onAddPhotoTags={handleAddPhotoTags}
+            onBack={closeFolder}
+            onDeletePhotoTags={handleDeletePhotoTags}
+            onDeletePhotos={handleDeletePhotos}
+            onOpenPhoto={openViewer}
+            onSearchChange={(value) => {
+              setPhotoSearch(value);
+              setViewerIndex(null);
+            }}
+            onSortChange={setPhotoSortOrder}
+          />
         )}
 
         <button
@@ -535,12 +451,4 @@ export default function GalleryPage({ username, role, onLogout, onOpenAdmin }) {
       </div>
     </div>
   );
-}
-
-function getPhotoTime(photo) {
-  const value = photo?.takenAt || photo?.createdAt;
-  if (!value) return 0;
-
-  const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? 0 : date.getTime();
 }

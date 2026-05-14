@@ -75,6 +75,24 @@ public class LocalStorageService implements StorageService {
     }
 
     @Override
+    public String storeThumbnail(String sourceStorageKey, byte[] bytes) {
+        if (bytes == null || bytes.length == 0) {
+            throw new IllegalArgumentException("Thumbnail bytes are required.");
+        }
+
+        String thumbnailKey = buildThumbnailKey(sourceStorageKey);
+
+        try {
+            Path target = resolveStorageKey(thumbnailKey);
+            Files.createDirectories(target.getParent());
+            Files.write(target, bytes);
+            return thumbnailKey;
+        } catch (IOException e) {
+            throw new IllegalStateException("Failed to store thumbnail.", e);
+        }
+    }
+
+    @Override
     public Resource loadAsResource(String storageKey) {
         try {
             Path filePath = resolveStorageKey(storageKey);
@@ -182,6 +200,23 @@ public class LocalStorageService implements StorageService {
             throw new IllegalArgumentException("Invalid storage key.");
         }
         return target;
+    }
+
+    private String buildThumbnailKey(String sourceStorageKey) {
+        String normalizedKey = normalizeStorageKey(sourceStorageKey);
+        int separator = normalizedKey.indexOf('/');
+
+        String rootId = storageRoots.get(0).id();
+        String relativeKey = normalizedKey;
+
+        if (separator > 0 && storageRootsById.containsKey(normalizedKey.substring(0, separator))) {
+            rootId = normalizedKey.substring(0, separator);
+            relativeKey = normalizedKey.substring(separator + 1);
+        }
+
+        int dotIndex = relativeKey.lastIndexOf('.');
+        String baseKey = dotIndex > -1 ? relativeKey.substring(0, dotIndex) : relativeKey;
+        return rootId + "/thumbnails/" + baseKey + ".jpg";
     }
 
     private String normalizeStorageKey(String storageKey) {

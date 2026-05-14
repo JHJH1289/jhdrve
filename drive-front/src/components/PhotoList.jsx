@@ -1,6 +1,7 @@
 import { useState } from "react";
 import PhotoCard from "./PhotoCard";
 import TagEditModal from "./TagEditModal";
+import { groupPhotosByDate } from "../utils/photoCollection";
 
 const TEXT = {
   addTags: "\uD0DC\uADF8 \uCD94\uAC00",
@@ -24,7 +25,7 @@ export default function PhotoList({ photos, onOpen, onDeleteSelected, onAddTagsS
   const selectedIdSet = new Set(visibleSelectedIds);
   const selectedPhotos = photos.filter((photo) => selectedIdSet.has(photo.id));
   const tagTargetPhotos = tagTarget?.photos || [];
-  const groups = groupPhotosByDate(photos);
+  const groups = groupPhotosByDate(photos, TEXT.noDate);
   const allSelected = visibleSelectedIds.length === photos.length;
 
   function togglePhoto(id) {
@@ -148,53 +149,4 @@ export default function PhotoList({ photos, onOpen, onDeleteSelected, onAddTagsS
       />
     </div>
   );
-}
-
-function groupPhotosByDate(photos) {
-  const groups = new Map();
-
-  photos.forEach((photo, index) => {
-    const dateValue = photo.takenAt || photo.createdAt;
-    const key = getDateKey(dateValue);
-
-    if (!groups.has(key)) {
-      groups.set(key, {
-        key,
-        label: formatDateLabel(dateValue),
-        items: [],
-      });
-    }
-
-    groups.get(key).items.push({ photo, index });
-  });
-
-  return Array.from(groups.values());
-}
-
-function getDateKey(value) {
-  if (!value) return "no-date";
-
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return String(value).slice(0, 10) || "no-date";
-
-  return [
-    date.getFullYear(),
-    String(date.getMonth() + 1).padStart(2, "0"),
-    String(date.getDate()).padStart(2, "0"),
-  ].join("-");
-}
-
-function formatDateLabel(value) {
-  if (!value) return TEXT.noDate;
-
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) {
-    return String(value).slice(0, 10) || TEXT.noDate;
-  }
-
-  return new Intl.DateTimeFormat("ko-KR", {
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-  }).format(date);
 }
