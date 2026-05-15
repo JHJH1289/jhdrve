@@ -24,7 +24,12 @@ public class JwtTokenProvider {
 
     @PostConstruct
     public void init() {
-        this.secretKey = Keys.hmacShaKeyFor(secretKeyString.getBytes(StandardCharsets.UTF_8));
+        byte[] secretKeyBytes = secretKeyString.getBytes(StandardCharsets.UTF_8);
+        if (secretKeyBytes.length < 32) {
+            throw new IllegalStateException("jwt.secret must be at least 32 bytes for HS256.");
+        }
+
+        this.secretKey = Keys.hmacShaKeyFor(secretKeyBytes);
     }
 
     public String createToken(Authentication authentication) {

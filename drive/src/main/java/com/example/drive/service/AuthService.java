@@ -58,9 +58,11 @@ public class AuthService {
     }
 
     public LoginResponse login(LoginRequest request) {
+        String username = request.getUsername() == null ? "" : request.getUsername().trim();
+
         Authentication authentication = authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(
-                        request.getUsername(),
+                        username,
                         request.getPassword()
                 )
         );
