@@ -1,4 +1,39 @@
 ﻿/* Admin */
+.admin-panel {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+}
+
+.admin-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 16px;
+}
+
+.admin-panel-header h2 {
+  margin-bottom: 4px;
+}
+
+.admin-panel-header p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.admin-panel-header span {
+  flex: 0 0 auto;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: #21472b;
+  font-size: 13px;
+  font-weight: 800;
+  padding: 7px 10px;
+}
+
 .admin-empty {
   margin-top: 24px;
   color: var(--muted);

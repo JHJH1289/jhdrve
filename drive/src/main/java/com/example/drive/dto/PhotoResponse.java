@@ -15,6 +15,7 @@ public class PhotoResponse {
     private final String imageUrl;
     private final String thumbnailUrl;
     private final LocalDateTime createdAt;
+    private final LocalDateTime deletedAt;
     private final Integer width;
     private final Integer height;
     private final LocalDateTime takenAt;
@@ -38,6 +39,7 @@ public class PhotoResponse {
             String imageUrl,
             String thumbnailUrl,
             LocalDateTime createdAt,
+            LocalDateTime deletedAt,
             Integer width,
             Integer height,
             LocalDateTime takenAt,
@@ -60,6 +62,7 @@ public class PhotoResponse {
         this.imageUrl = imageUrl;
         this.thumbnailUrl = thumbnailUrl;
         this.createdAt = createdAt;
+        this.deletedAt = deletedAt;
         this.width = width;
         this.height = height;
         this.takenAt = takenAt;
@@ -83,6 +86,7 @@ public class PhotoResponse {
     public String getImageUrl() { return imageUrl; }
     public String getThumbnailUrl() { return thumbnailUrl; }
     public LocalDateTime getCreatedAt() { return createdAt; }
+    public LocalDateTime getDeletedAt() { return deletedAt; }
     public Integer getWidth() { return width; }
     public Integer getHeight() { return height; }
     public LocalDateTime getTakenAt() { return takenAt; }

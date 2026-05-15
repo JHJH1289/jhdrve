@@ -39,6 +39,9 @@ import java.util.stream.Stream;
 public class PhotoService {
 
     private static final String DEFAULT_FOLDER = "\uAE30\uBCF8";
+    private static final long BYTES_PER_GB = 1024L * 1024L * 1024L;
+    private static final long MAX_UPLOAD_BATCH_BYTES = 50L * BYTES_PER_GB;
+    private static final long ACCOUNT_STORAGE_LIMIT_BYTES = 400L * BYTES_PER_GB;
 
     private final StorageService storageService;
     private final PhotoRepository photoRepository;
@@ -69,25 +72,39 @@ public class PhotoService {
             throw new IllegalArgumentException("No files were provided.");
         }
 
+        List<MultipartFile> uploadFiles = Arrays.stream(files)
+                .filter(file -> file != null && !file.isEmpty())
+                .toList();
+
+        if (uploadFiles.isEmpty()) {
+            throw new IllegalArgumentException("No files were provided.");
+        }
+
+        validateUploadQuota(normalizedOwnerId, uploadFiles);
+
         String normalizedFolderPath = normalizeFolderPath(folderPath);
         PhotoFolder folder = ensureFolder(normalizedOwnerId, normalizedFolderPath);
         folder.touch(LocalDateTime.now());
 
-        List<PhotoUploadItemResponse> items = Arrays.stream(files)
-                .filter(file -> file != null && !file.isEmpty())
+        List<PhotoUploadItemResponse> items = uploadFiles.stream()
                 .map(file -> uploadOne(normalizedOwnerId, normalizedFolderPath, normalizedTags, file))
                 .toList();
-
-        if (items.isEmpty()) {
-            throw new IllegalArgumentException("No files were provided.");
-        }
 
         return new PhotoUploadBatchResponse(items.size(), items);
     }
 
+    public Map<String, Long> getStorageStatus(String ownerId) {
+        String normalizedOwnerId = normalizeOwnerId(ownerId);
+        return Map.of(
+                "usedBytes", photoRepository.sumFileSizeByOwnerId(normalizedOwnerId),
+                "limitBytes", ACCOUNT_STORAGE_LIMIT_BYTES,
+                "maxUploadBytes", MAX_UPLOAD_BATCH_BYTES
+        );
+    }
+
     public PhotoFile getPhotoFile(String ownerId, Long id, boolean admin) {
         String normalizedOwnerId = normalizeOwnerId(ownerId);
-        Photo photo = findAccessiblePhoto(normalizedOwnerId, id, admin);
+        Photo photo = findAccessibleStoredPhoto(normalizedOwnerId, id, admin);
 
         Resource resource = storageService.loadAsResource(photo.getStorageKey());
         String contentType = photo.getContentType() != null
@@ -101,7 +118,7 @@ public class PhotoService {
         String normalizedOwnerId = normalizeOwnerId(ownerId);
         String normalizedFolderPath = normalizeFolderPath(folderPath);
 
-        return photoRepository.findAllByOwnerIdAndFolderPath(normalizedOwnerId, normalizedFolderPath)
+        return photoRepository.findAllByOwnerIdAndFolderPathAndDeletedAtIsNull(normalizedOwnerId, normalizedFolderPath)
                 .stream()
                 .sorted(photoComparator())
                 .map(this::toPhotoResponse)
@@ -111,6 +128,7 @@ public class PhotoService {
     public List<PhotoResponse> getAllPhotos() {
         return photoRepository.findAll()
                 .stream()
+                .filter(photo -> !photo.isDeleted())
                 .sorted(photoComparator())
                 .map(this::toPhotoResponse)
                 .toList();
@@ -119,7 +137,7 @@ public class PhotoService {
     @Transactional
     public PhotoFile getPhotoThumbnailFile(String ownerId, Long id, boolean admin) {
         String normalizedOwnerId = normalizeOwnerId(ownerId);
-        Photo photo = findAccessiblePhoto(normalizedOwnerId, id, admin);
+        Photo photo = findAccessibleStoredPhoto(normalizedOwnerId, id, admin);
 
         String thumbnailStorageKey = ensureThumbnail(photo);
         if (thumbnailStorageKey == null) {
@@ -189,7 +207,7 @@ public class PhotoService {
         String normalizedOwnerId = normalizeOwnerId(ownerId);
         String normalizedFolderPath = normalizeFolderPath(folderPath);
 
-        long photoCount = photoRepository.countByOwnerIdAndFolderPath(normalizedOwnerId, normalizedFolderPath);
+        long photoCount = photoRepository.countByOwnerIdAndFolderPathAndDeletedAtIsNull(normalizedOwnerId, normalizedFolderPath);
         if (photoCount > 0) {
             throw new IllegalArgumentException("폴더가 비어있지 않습니다.");
         }
@@ -204,7 +222,7 @@ public class PhotoService {
         String normalizedOwnerId = normalizeOwnerId(ownerId);
         String normalizedFolderPath = normalizeFolderPath(folderPath);
 
-        List<Photo> photos = photoRepository.findAllByOwnerIdAndFolderPath(normalizedOwnerId, normalizedFolderPath);
+        List<Photo> photos = photoRepository.findAllByOwnerIdAndFolderPathAndDeletedAtIsNull(normalizedOwnerId, normalizedFolderPath);
         for (Photo photo : photos) {
             deletePhotoFiles(photo);
         }
@@ -272,8 +290,46 @@ public class PhotoService {
         Photo photo = findAccessiblePhoto(normalizedOwnerId, id, admin);
 
         ensureFolder(photo.getOwnerId(), photo.getFolderPath()).touch(LocalDateTime.now());
+        photo.moveToTrash(LocalDateTime.now());
+    }
+
+    public List<PhotoResponse> getTrashPhotos(String ownerId) {
+        String normalizedOwnerId = normalizeOwnerId(ownerId);
+
+        return photoRepository.findAllByOwnerIdAndDeletedAtIsNotNull(normalizedOwnerId)
+                .stream()
+                .sorted(Comparator
+                        .comparing(Photo::getDeletedAt, Comparator.nullsLast(Comparator.reverseOrder()))
+                        .thenComparing(Photo::getId, Comparator.reverseOrder()))
+                .map(this::toPhotoResponse)
+                .toList();
+    }
+
+    @Transactional
+    public void restorePhoto(String ownerId, Long id) {
+        String normalizedOwnerId = normalizeOwnerId(ownerId);
+        Photo photo = findTrashPhoto(normalizedOwnerId, id);
+        photo.restoreFromTrash();
+        ensureFolder(photo.getOwnerId(), photo.getFolderPath()).touch(LocalDateTime.now());
+    }
+
+    @Transactional
+    public void deleteTrashPhotoPermanently(String ownerId, Long id) {
+        String normalizedOwnerId = normalizeOwnerId(ownerId);
+        Photo photo = findTrashPhoto(normalizedOwnerId, id);
         deletePhotoFiles(photo);
         photoRepository.delete(photo);
+    }
+
+    @Transactional
+    public int emptyTrash(String ownerId) {
+        String normalizedOwnerId = normalizeOwnerId(ownerId);
+        List<Photo> photos = photoRepository.findAllByOwnerIdAndDeletedAtIsNotNull(normalizedOwnerId);
+        for (Photo photo : photos) {
+            deletePhotoFiles(photo);
+        }
+        photoRepository.deleteAll(photos);
+        return photos.size();
     }
 
     @Transactional
@@ -292,6 +348,7 @@ public class PhotoService {
         List<Photo> photos = photoRepository.findAllById(photoIds)
                 .stream()
                 .filter(photo -> normalizedOwnerId.equals(normalizeOwnerId(photo.getOwnerId())))
+                .filter(photo -> !photo.isDeleted())
                 .toList();
 
         if (photos.isEmpty()) {
@@ -333,6 +390,7 @@ public class PhotoService {
         List<Photo> photos = photoRepository.findAllById(photoIds)
                 .stream()
                 .filter(photo -> normalizedOwnerId.equals(normalizeOwnerId(photo.getOwnerId())))
+                .filter(photo -> !photo.isDeleted())
                 .toList();
 
         if (photos.isEmpty()) {
@@ -371,10 +429,9 @@ public class PhotoService {
         Set<String> touchedFolders = new LinkedHashSet<>();
         for (Photo duplicate : duplicates) {
             touchedFolders.add(duplicate.getFolderPath());
-            deletePhotoFiles(duplicate);
+            duplicate.moveToTrash(LocalDateTime.now());
         }
 
-        photoRepository.deleteAll(duplicates);
         LocalDateTime now = LocalDateTime.now();
         for (String folderPath : touchedFolders) {
             ensureFolder(normalizedOwnerId, folderPath).touch(now);
@@ -396,7 +453,7 @@ public class PhotoService {
     }
 
     private List<DuplicatePhotoGroup> findDuplicatePhotoGroups(String ownerId) {
-        List<Photo> photos = photoRepository.findAllByOwnerId(ownerId);
+        List<Photo> photos = photoRepository.findAllByOwnerIdAndDeletedAtIsNull(ownerId);
         Map<Long, List<Photo>> photosBySize = new HashMap<>();
         for (Photo photo : photos) {
             photosBySize.computeIfAbsent(photo.getFileSize(), ignored -> new ArrayList<>()).add(photo);
@@ -483,6 +540,48 @@ public class PhotoService {
         );
     }
 
+    private void validateUploadQuota(String ownerId, List<MultipartFile> files) {
+        long uploadBytes = files.stream()
+                .mapToLong(MultipartFile::getSize)
+                .sum();
+
+        if (uploadBytes > MAX_UPLOAD_BATCH_BYTES) {
+            throw new IllegalArgumentException("한 번에 업로드할 수 있는 용량은 최대 50GB입니다. 선택한 용량: " + formatBytes(uploadBytes));
+        }
+
+        long usedBytes = photoRepository.sumFileSizeByOwnerId(ownerId);
+        long nextUsedBytes = usedBytes + uploadBytes;
+
+        if (nextUsedBytes > ACCOUNT_STORAGE_LIMIT_BYTES) {
+            long remainingBytes = Math.max(0L, ACCOUNT_STORAGE_LIMIT_BYTES - usedBytes);
+            throw new IllegalArgumentException(
+                    "계정 저장공간 400GB를 초과하여 업로드할 수 없습니다. 현재 사용량: "
+                            + formatBytes(usedBytes)
+                            + ", 업로드 용량: "
+                            + formatBytes(uploadBytes)
+                            + ", 남은 용량: "
+                            + formatBytes(remainingBytes)
+            );
+        }
+    }
+
+    private String formatBytes(long bytes) {
+        if (bytes < 1024L) {
+            return bytes + " B";
+        }
+
+        String[] units = {"KB", "MB", "GB", "TB"};
+        double size = bytes / 1024.0;
+        int unitIndex = 0;
+
+        while (size >= 1024.0 && unitIndex < units.length - 1) {
+            size /= 1024.0;
+            unitIndex += 1;
+        }
+
+        return String.format(java.util.Locale.US, size >= 10.0 ? "%.1f %s" : "%.2f %s", size, units[unitIndex]);
+    }
+
     private PhotoResponse toPhotoResponse(Photo photo) {
         return new PhotoResponse(
                 photo.getId(),
@@ -495,6 +594,7 @@ public class PhotoService {
                 buildImageUrl(photo.getId()),
                 buildThumbnailUrl(photo.getId()),
                 photo.getCreatedAt(),
+                photo.getDeletedAt(),
                 photo.getWidth(),
                 photo.getHeight(),
                 photo.getTakenAt(),
@@ -510,17 +610,34 @@ public class PhotoService {
     }
 
     private Photo findOwnedPhoto(String ownerId, Long id) {
-        return photoRepository.findByIdAndOwnerId(id, ownerId)
+        return photoRepository.findByIdAndOwnerIdAndDeletedAtIsNull(id, ownerId)
                 .orElseThrow(() -> new IllegalArgumentException("Photo not found. id=" + id));
+    }
+
+    private Photo findTrashPhoto(String ownerId, Long id) {
+        return photoRepository.findByIdAndOwnerIdAndDeletedAtIsNotNull(id, ownerId)
+                .orElseThrow(() -> new IllegalArgumentException("Trash photo not found. id=" + id));
     }
 
     private Photo findAccessiblePhoto(String ownerId, Long id, boolean admin) {
         if (admin) {
             return photoRepository.findById(id)
+                    .filter(photo -> !photo.isDeleted())
                     .orElseThrow(() -> new IllegalArgumentException("Photo not found. id=" + id));
         }
 
         return findOwnedPhoto(ownerId, id);
+    }
+
+    private Photo findAccessibleStoredPhoto(String ownerId, Long id, boolean admin) {
+        Photo photo = photoRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Photo not found. id=" + id));
+
+        if (!admin && !ownerId.equals(normalizeOwnerId(photo.getOwnerId()))) {
+            throw new IllegalArgumentException("Photo not found. id=" + id);
+        }
+
+        return photo;
     }
 
     private Comparator<Photo> photoComparator() {
@@ -583,12 +700,12 @@ public class PhotoService {
     }
 
     private FolderResponse toFolderResponse(String ownerId, PhotoFolder folder) {
-        LocalDateTime latestPhotoCreatedAt = photoRepository
-                .findLatestCreatedAtByOwnerIdAndFolderPath(ownerId, folder.getFolderPath())
+        LocalDateTime latestPhotoAt = photoRepository
+                .findLatestPhotoAtByOwnerIdAndFolderPath(ownerId, folder.getFolderPath())
                 .orElse(null);
-        LocalDateTime updatedAt = latestDate(folder.getUpdatedAt(), latestPhotoCreatedAt);
+        LocalDateTime updatedAt = latestDate(folder.getUpdatedAt(), latestPhotoAt);
 
-        List<Photo> folderPhotos = photoRepository.findAllByOwnerIdAndFolderPath(ownerId, folder.getFolderPath());
+        List<Photo> folderPhotos = photoRepository.findAllByOwnerIdAndFolderPathAndDeletedAtIsNull(ownerId, folder.getFolderPath());
 
         return new FolderResponse(
                 ownerId,
@@ -596,6 +713,8 @@ public class PhotoService {
                 updatedAt,
                 folder.getSortOrder(),
                 folderPhotos.size(),
+                photoRepository.sumFileSizeByOwnerIdAndFolderPath(ownerId, folder.getFolderPath()),
+                latestPhotoAt,
                 folderPhotos.stream()
                         .flatMap(photo -> splitTags(photo.getTags()).stream())
                         .distinct()

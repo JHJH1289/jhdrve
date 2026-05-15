@@ -46,6 +46,7 @@ CREATE TABLE IF NOT EXISTS photos (
   content_type VARCHAR(255) NOT NULL,
   file_size BIGINT NOT NULL,
   created_at TIMESTAMP NOT NULL,
+  deleted_at TIMESTAMP,
   folder_path VARCHAR(300) NOT NULL,
   width INTEGER,
   height INTEGER,
@@ -66,9 +67,19 @@ CREATE TABLE IF NOT EXISTS photos (
 ALTER TABLE photos
   ADD COLUMN IF NOT EXISTS thumbnail_storage_key VARCHAR(500);
 
+ALTER TABLE photos
+  ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMP;
+
 -- 7. Helpful indexes for gallery/folder queries.
 CREATE INDEX IF NOT EXISTS idx_photos_owner_folder
   ON photos (owner_id, folder_path);
+
+CREATE INDEX IF NOT EXISTS idx_photos_owner_folder_active
+  ON photos (owner_id, folder_path)
+  WHERE deleted_at IS NULL;
+
+CREATE INDEX IF NOT EXISTS idx_photos_owner_deleted
+  ON photos (owner_id, deleted_at);
 
 CREATE INDEX IF NOT EXISTS idx_photos_owner
   ON photos (owner_id);

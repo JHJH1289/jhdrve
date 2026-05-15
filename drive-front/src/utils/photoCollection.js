@@ -38,6 +38,30 @@ export function sortPhotosByDate(photos, sortOrder) {
   });
 }
 
+export function sortFolders(folders, sortOrder) {
+  return [...folders].sort((first, second) => {
+    if (sortOrder === "size-desc" || sortOrder === "size-asc") {
+      const firstSize = Number(first.totalSize || 0);
+      const secondSize = Number(second.totalSize || 0);
+      const direction = sortOrder === "size-asc" ? 1 : -1;
+
+      if (firstSize !== secondSize) {
+        return (firstSize - secondSize) * direction;
+      }
+    } else {
+      const firstTime = getFolderPhotoTime(first);
+      const secondTime = getFolderPhotoTime(second);
+      const direction = sortOrder === "oldest" ? 1 : -1;
+
+      if (firstTime !== secondTime) {
+        return (firstTime - secondTime) * direction;
+      }
+    }
+
+    return String(first.folderPath || "").localeCompare(String(second.folderPath || ""), "ko-KR");
+  });
+}
+
 export function groupPhotosByDate(photos, emptyLabel) {
   const groups = new Map();
 
@@ -61,6 +85,14 @@ export function groupPhotosByDate(photos, emptyLabel) {
 
 export function getPhotoTime(photo) {
   const value = photo?.takenAt || photo?.createdAt;
+  if (!value) return 0;
+
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? 0 : date.getTime();
+}
+
+function getFolderPhotoTime(folder) {
+  const value = folder?.latestPhotoAt || folder?.updatedAt;
   if (!value) return 0;
 
   const date = new Date(value);

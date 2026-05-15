@@ -62,6 +62,8 @@ public class Photo {
     @Column(length = 1000)
     private String tags;
 
+    private LocalDateTime deletedAt;
+
     protected Photo() {
     }
 
@@ -187,8 +189,24 @@ public class Photo {
         return tags;
     }
 
+    public LocalDateTime getDeletedAt() {
+        return deletedAt;
+    }
+
     public void changeTags(String tags) {
         this.tags = tags;
+    }
+
+    public void moveToTrash(LocalDateTime deletedAt) {
+        this.deletedAt = deletedAt;
+    }
+
+    public void restoreFromTrash() {
+        this.deletedAt = null;
+    }
+
+    public boolean isDeleted() {
+        return deletedAt != null;
     }
 
 }

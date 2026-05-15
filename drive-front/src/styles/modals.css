@@ -341,6 +341,124 @@
   padding: 20px;
 }
 
+.trash-page {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.trash-page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 16px;
+}
+
+.trash-page-header h2 {
+  margin-bottom: 4px;
+}
+
+.trash-page-header p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.trash-empty-btn,
+.trash-danger-btn {
+  background: var(--danger-soft);
+  color: #8f1d15;
+}
+
+.trash-empty-btn:hover,
+.trash-danger-btn:hover {
+  background: #ebc8c8;
+}
+
+.trash-empty-btn {
+  width: auto;
+  min-height: 36px;
+  padding: 9px 14px;
+  font-size: 13px;
+}
+
+.trash-empty {
+  margin: 26px 0 6px;
+  border: 1px dashed var(--line-strong);
+  border-radius: 12px;
+  background: var(--surface-soft);
+  color: var(--muted);
+  padding: 34px 18px;
+  text-align: center;
+}
+
+.trash-photo-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.trash-photo-card {
+  display: flex;
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #ffffff;
+  flex-direction: column;
+}
+
+.trash-photo-image {
+  display: block;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  background: #edf2ee;
+  object-fit: cover;
+}
+
+.trash-photo-meta {
+  display: flex;
+  min-width: 0;
+  color: var(--muted);
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+  line-height: 1.35;
+  padding: 11px 12px 9px;
+}
+
+.trash-photo-meta strong,
+.trash-photo-meta span {
+  overflow-wrap: anywhere;
+}
+
+.trash-photo-meta strong {
+  color: var(--text);
+  font-size: 13px;
+}
+
+.trash-photo-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 7px;
+  margin-top: auto;
+  border-top: 1px solid var(--line);
+  background: var(--surface-soft);
+  padding: 9px;
+}
+
+.trash-photo-actions button {
+  min-height: 36px;
+  border-radius: 8px;
+  padding: 8px 9px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
 .duplicate-modal-content h2 {
   margin-bottom: 0;
 }

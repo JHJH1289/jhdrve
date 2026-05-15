@@ -3,6 +3,7 @@ import FolderGrid from "../FolderGrid";
 export default function GalleryFolderSection({
   labels,
   folders,
+  folderSortOrder,
   searchText,
   toolsOpen,
   deletingDuplicates,
@@ -10,9 +11,10 @@ export default function GalleryFolderSection({
   onDeleteDuplicates,
   onDeleteFolder,
   onOpenFolder,
+  onOpenTrash,
   onRenameFolder,
   onReorderFolders,
-  onSearchChange,
+  onSortChange,
   onToggleTools,
 }) {
   const reorderDisabled = searchText.trim().length > 0;
@@ -36,13 +38,18 @@ export default function GalleryFolderSection({
 
           {toolsOpen && (
             <div className="folder-tools-menu">
-              <input
-                type="text"
-                className="folder-search-input"
-                value={searchText}
-                onChange={(event) => onSearchChange(event.target.value)}
-                placeholder={labels.folderSearchPlaceholder}
-              />
+              <label className="folder-sort-control">
+                <select
+                  value={folderSortOrder}
+                  onChange={(event) => onSortChange(event.target.value)}
+                  aria-label={labels.folderSortLabel}
+                >
+                  <option value="newest">{labels.sortNewest}</option>
+                  <option value="oldest">{labels.sortOldest}</option>
+                  <option value="size-desc">{labels.sortSizeDesc}</option>
+                  <option value="size-asc">{labels.sortSizeAsc}</option>
+                </select>
+              </label>
               <button
                 type="button"
                 className="secondary-btn"
@@ -51,6 +58,13 @@ export default function GalleryFolderSection({
               >
                 {labels.deleteDuplicates}
               </button>
+              <button
+                type="button"
+                className="secondary-btn"
+                onClick={onOpenTrash}
+              >
+                {labels.trash}
+              </button>
             </div>
           )}
         </div>
@@ -58,7 +72,7 @@ export default function GalleryFolderSection({
       <FolderGrid
         folders={folders}
         onOpenFolder={onOpenFolder}
-        onReorder={reorderDisabled ? () => {} : onReorderFolders}
+        onReorder={reorderDisabled || folderSortOrder !== "newest" ? () => {} : onReorderFolders}
         onDeleteFolder={onDeleteFolder}
         onRenameFolder={onRenameFolder}
       />

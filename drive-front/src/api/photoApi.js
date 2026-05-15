@@ -36,7 +36,14 @@ async function request(url, options = {}) {
 
   if (!response.ok) {
     const text = await response.text();
-    throw new Error(text || `HTTP ${response.status}`);
+    let message = text;
+    try {
+      const body = JSON.parse(text);
+      message = body.message || text;
+    } catch {
+      message = text;
+    }
+    throw new Error(message || `HTTP ${response.status}`);
   }
 
   const contentType = response.headers.get("content-type") || "";
@@ -86,6 +93,12 @@ export async function fetchFolders() {
   });
 
   return normalizeFolders(result);
+}
+
+export async function fetchStorageStatus() {
+  return request("/api/photos/storage", {
+    method: "GET",
+  });
 }
 
 export async function createFolder(folderPath) {
@@ -157,6 +170,32 @@ export async function uploadPhotos(folderPath, files, tags = "") {
 
 export async function deletePhoto(id) {
   return request(`/api/photos/${id}`, {
+    method: "DELETE",
+  });
+}
+
+export async function fetchTrashPhotos() {
+  const result = await request("/api/photos/trash", {
+    method: "GET",
+  });
+
+  return Array.isArray(result) ? result.map(normalizePhoto) : [];
+}
+
+export async function restoreTrashPhoto(id) {
+  return request(`/api/photos/trash/${id}/restore`, {
+    method: "POST",
+  });
+}
+
+export async function deleteTrashPhoto(id) {
+  return request(`/api/photos/trash/${id}`, {
+    method: "DELETE",
+  });
+}
+
+export async function emptyTrashPhotos() {
+  return request("/api/photos/trash", {
     method: "DELETE",
   });
 }
@@ -235,6 +274,8 @@ function normalizeFolders(result) {
           updatedAt: folder.updatedAt || null,
           sortOrder: folder.sortOrder ?? index,
           photoCount: folder.photoCount ?? 0,
+          totalSize: folder.totalSize ?? 0,
+          latestPhotoAt: folder.latestPhotoAt || null,
           tags: Array.isArray(folder.tags) ? folder.tags : [],
           previewImageUrls: Array.isArray(folder.previewImageUrls)
             ? folder.previewImageUrls.map(normalizeImageUrl)

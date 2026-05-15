@@ -64,6 +64,12 @@ public class PhotoController {
         return ResponseEntity.ok(photoService.getFolders(username));
     }
 
+    @GetMapping("/storage")
+    public ResponseEntity<Map<String, Long>> getStorage(Authentication authentication) {
+        String username = authentication.getName();
+        return ResponseEntity.ok(photoService.getStorageStatus(username));
+    }
+
     @PostMapping("/folders")
     public ResponseEntity<Map<String, String>> createFolder(
             Authentication authentication,
@@ -115,6 +121,42 @@ public class PhotoController {
         String username = authentication.getName();
         photoService.deletePhoto(username, id, isAdmin(authentication));
         return ResponseEntity.ok(Map.of("message", "삭제 완료"));
+    }
+
+    @GetMapping("/trash")
+    public ResponseEntity<List<PhotoResponse>> getTrash(Authentication authentication) {
+        String username = authentication.getName();
+        return ResponseEntity.ok(photoService.getTrashPhotos(username));
+    }
+
+    @PostMapping("/trash/{id}/restore")
+    public ResponseEntity<Map<String, String>> restoreTrash(
+            Authentication authentication,
+            @PathVariable("id") Long id
+    ) {
+        String username = authentication.getName();
+        photoService.restorePhoto(username, id);
+        return ResponseEntity.ok(Map.of("message", "복원 완료"));
+    }
+
+    @DeleteMapping("/trash/{id}")
+    public ResponseEntity<Map<String, String>> deleteTrashPermanently(
+            Authentication authentication,
+            @PathVariable("id") Long id
+    ) {
+        String username = authentication.getName();
+        photoService.deleteTrashPhotoPermanently(username, id);
+        return ResponseEntity.ok(Map.of("message", "영구 삭제 완료"));
+    }
+
+    @DeleteMapping("/trash")
+    public ResponseEntity<Map<String, Object>> emptyTrash(Authentication authentication) {
+        String username = authentication.getName();
+        int deletedCount = photoService.emptyTrash(username);
+        return ResponseEntity.ok(Map.of(
+                "message", "휴지통 비우기 완료",
+                "deletedCount", deletedCount
+        ));
     }
 
     @PostMapping("/tags")

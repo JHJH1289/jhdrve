@@ -19,6 +19,17 @@
   transition: border-color 0.16s ease, background-color 0.16s ease, transform 0.16s ease;
 }
 
+.folder-sort-control {
+  width: 100%;
+}
+
+.folder-sort-control select {
+  width: 100%;
+  min-height: 38px;
+  border-radius: 9px;
+  padding: 8px 10px;
+}
+
 .folder-card:hover {
   border-color: #7dab88;
   background: #f6fbf7;
