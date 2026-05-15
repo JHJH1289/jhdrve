@@ -7,6 +7,7 @@ import GalleryPhotoSection from "../components/gallery/GalleryPhotoSection";
 import ImageViewerModal from "../components/ImageViewerModal";
 import PhotoStatus from "../components/PhotoStatus";
 import UploadModal from "../components/UploadModal";
+import UploadProgressOverlay from "../components/UploadProgressOverlay";
 import { useAutoDismissNotice } from "../hooks/useAutoDismissNotice";
 import { filterFolders, filterPhotos, sortPhotosByDate } from "../utils/photoCollection";
 
@@ -39,6 +40,7 @@ export default function GalleryPage({ username, role, onLogout, onOpenAdmin }) {
   const [status, setStatus] = useState("");
   const [notice, setNotice] = useAutoDismissNotice();
   const [uploadModalOpen, setUploadModalOpen] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [viewerIndex, setViewerIndex] = useState(null);
   const [duplicateGroups, setDuplicateGroups] = useState([]);
   const [duplicateModalOpen, setDuplicateModalOpen] = useState(false);
@@ -93,6 +95,7 @@ export default function GalleryPage({ username, role, onLogout, onOpenAdmin }) {
         return;
       }
 
+      setUploading(true);
       setStatus("\uC5C5\uB85C\uB4DC \uC911...");
       await uploadPhotos(folderPath, files, tags);
       setStatus("\uC5C5\uB85C\uB4DC \uC644\uB8CC");
@@ -107,6 +110,8 @@ export default function GalleryPage({ username, role, onLogout, onOpenAdmin }) {
       }
     } catch (error) {
       setStatus(`\uC5C5\uB85C\uB4DC \uC624\uB958: ${error.message}`);
+    } finally {
+      setUploading(false);
     }
   }
 
@@ -418,11 +423,16 @@ export default function GalleryPage({ username, role, onLogout, onOpenAdmin }) {
           <UploadModal
             key={selectedFolder || "folder-list-upload"}
             open={uploadModalOpen}
-            onClose={() => setUploadModalOpen(false)}
+            uploading={uploading}
+            onClose={() => {
+              if (!uploading) setUploadModalOpen(false);
+            }}
             onUpload={handleUpload}
             defaultFolder={selectedFolder || ""}
           />
         )}
+
+        <UploadProgressOverlay open={uploading} />
 
         <ImageViewerModal
           open={viewerIndex !== null}

@@ -16,7 +16,7 @@ const TEXT = {
 
 const SUGGESTED_TAGS = ["여행", "맛집", "꽃", "가족", "친구", "공연"];
 
-export default function UploadModal({ open, onClose, onUpload, defaultFolder = "" }) {
+export default function UploadModal({ open, onClose, onUpload, defaultFolder = "", uploading = false }) {
   const initialFolderPath = open ? defaultFolder : "";
   const [folderPath, setFolderPath] = useState(initialFolderPath);
   const [tagText, setTagText] = useState("");
@@ -31,6 +31,7 @@ export default function UploadModal({ open, onClose, onUpload, defaultFolder = "
   }
 
   function handleClose() {
+    if (uploading) return;
     resetForm();
     onClose();
   }
@@ -41,6 +42,8 @@ export default function UploadModal({ open, onClose, onUpload, defaultFolder = "
   }
 
   async function handleSubmit() {
+    if (uploading) return;
+
     const trimmedFolderPath = folderPath.trim();
     if (!trimmedFolderPath) {
       window.alert(TEXT.folderRequired);
@@ -64,7 +67,7 @@ export default function UploadModal({ open, onClose, onUpload, defaultFolder = "
       <div className="upload-modal-content" onClick={(e) => e.stopPropagation()}>
         <div className="modal-top">
           <h2>{TEXT.title}</h2>
-          <button type="button" className="photo-modal-close" onClick={handleClose}>
+          <button type="button" className="photo-modal-close" onClick={handleClose} disabled={uploading}>
             {TEXT.close}
           </button>
         </div>
@@ -76,11 +79,12 @@ export default function UploadModal({ open, onClose, onUpload, defaultFolder = "
             value={folderPath}
             onChange={(e) => setFolderPath(e.target.value)}
             placeholder={TEXT.folderPlaceholder}
+            disabled={uploading}
           />
         </div>
 
         <div className="row">
-          <input type="file" multiple accept="image/*" onChange={handleChange} />
+          <input type="file" multiple accept="image/*" onChange={handleChange} disabled={uploading} />
         </div>
 
         <div className="row">
@@ -90,10 +94,11 @@ export default function UploadModal({ open, onClose, onUpload, defaultFolder = "
             value={tagText}
             onChange={(event) => setTagText(event.target.value)}
             placeholder={TEXT.tagPlaceholder}
+            disabled={uploading}
           />
           <div className="upload-tag-suggestions">
             {SUGGESTED_TAGS.map((tag) => (
-              <button type="button" key={tag} onClick={() => addSuggestedTag(tag)}>
+              <button type="button" key={tag} onClick={() => addSuggestedTag(tag)} disabled={uploading}>
                 #{tag}
               </button>
             ))}
@@ -102,10 +107,10 @@ export default function UploadModal({ open, onClose, onUpload, defaultFolder = "
         </div>
 
         <div className="viewer-actions">
-          <button type="button" onClick={handleSubmit}>
+          <button type="button" onClick={handleSubmit} disabled={uploading}>
             {TEXT.upload}
           </button>
-          <button type="button" className="secondary-btn" onClick={handleClose}>
+          <button type="button" className="secondary-btn" onClick={handleClose} disabled={uploading}>
             {TEXT.cancel}
           </button>
         </div>

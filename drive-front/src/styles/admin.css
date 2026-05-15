@@ -1,0 +1,75 @@
+﻿/* Admin */
+.admin-empty {
+  margin-top: 24px;
+  color: var(--muted);
+}
+
+.admin-folder-list {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+  margin-top: 28px;
+}
+
+.admin-owner-section {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.admin-owner-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 8px;
+}
+
+.admin-owner-header h2 {
+  margin-bottom: 0;
+}
+
+.admin-folder-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  gap: 14px;
+}
+
+.admin-folder-card {
+  display: flex;
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  flex-direction: column;
+  gap: 12px;
+  padding: 12px;
+}
+
+.admin-folder-preview {
+  overflow: hidden;
+  aspect-ratio: 4 / 3;
+  border-radius: 10px;
+  background: #edf2ee;
+}
+
+.admin-folder-preview-image,
+.admin-folder-preview-empty {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+}
+
+.admin-folder-preview-empty {
+  background: linear-gradient(135deg, #edf2ee, #dce7de);
+}
+
+.admin-folder-meta h3 {
+  margin: 0 0 4px;
+  color: var(--text);
+  font-size: 16px;
+  overflow-wrap: anywhere;
+}
+
