@@ -143,6 +143,50 @@ export async function updateFolderOrder(folderPaths) {
   return normalizeFolders(result);
 }
 
+export async function createFolderShareLink(folderPath) {
+  return request("/api/photos/folders/share", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ folderPath }),
+  });
+}
+
+export async function downloadFolderZip(folderPath) {
+  const token = getToken();
+  const params = new URLSearchParams();
+  if (folderPath) {
+    params.set("folderPath", folderPath);
+  }
+
+  const headers = {};
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
+  }
+
+  const response = await fetch(`${API_BASE_URL}/api/photos/folders/download?${params.toString()}`, {
+    method: "GET",
+    headers,
+  });
+
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(text || `HTTP ${response.status}`);
+  }
+
+  const blob = await response.blob();
+  const filename = getDownloadFilename(response.headers.get("content-disposition")) || `${folderPath || DEFAULT_FOLDER}.zip`;
+  const objectUrl = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = objectUrl;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(objectUrl);
+}
+
 export async function uploadPhotos(folderPath, files, tags = "") {
   const formData = new FormData();
 
@@ -293,4 +337,16 @@ function normalizePhoto(photo) {
         thumbnailUrl: normalizeImageUrl(photo.thumbnailUrl),
       }
     : null;
+}
+
+function getDownloadFilename(contentDisposition) {
+  if (!contentDisposition) return "";
+
+  const utf8Match = contentDisposition.match(/filename\*=UTF-8''([^;]+)/i);
+  if (utf8Match) {
+    return decodeURIComponent(utf8Match[1]);
+  }
+
+  const filenameMatch = contentDisposition.match(/filename="([^"]+)"/i);
+  return filenameMatch ? filenameMatch[1] : "";
 }

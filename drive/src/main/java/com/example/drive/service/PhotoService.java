@@ -2,13 +2,17 @@ package com.example.drive.service;
 
 import com.example.drive.dto.DuplicatePhotoGroupResponse;
 import com.example.drive.dto.FolderResponse;
+import com.example.drive.dto.FolderShareResponse;
 import com.example.drive.dto.PhotoMetadata;
 import com.example.drive.dto.PhotoResponse;
 import com.example.drive.dto.PhotoUploadBatchResponse;
 import com.example.drive.dto.PhotoUploadItemResponse;
+import com.example.drive.dto.SharedFolderResponse;
 import com.example.drive.dto.StoredFile;
+import com.example.drive.entity.FolderShareLink;
 import com.example.drive.entity.Photo;
 import com.example.drive.entity.PhotoFolder;
+import com.example.drive.repository.FolderShareLinkRepository;
 import com.example.drive.repository.PhotoFolderRepository;
 import com.example.drive.repository.PhotoRepository;
 import org.springframework.core.io.Resource;
@@ -20,6 +24,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.security.SecureRandom;
 import java.security.DigestInputStream;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -34,6 +39,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Stream;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipOutputStream;
 
 @Service
 public class PhotoService {
@@ -42,10 +49,12 @@ public class PhotoService {
     private static final long BYTES_PER_GB = 1024L * 1024L * 1024L;
     private static final long MAX_UPLOAD_BATCH_BYTES = 50L * BYTES_PER_GB;
     private static final long ACCOUNT_STORAGE_LIMIT_BYTES = 400L * BYTES_PER_GB;
+    private static final SecureRandom SHARE_TOKEN_RANDOM = new SecureRandom();
 
     private final StorageService storageService;
     private final PhotoRepository photoRepository;
     private final PhotoFolderRepository photoFolderRepository;
+    private final FolderShareLinkRepository folderShareLinkRepository;
     private final PhotoMetadataService photoMetadataService;
     private final PhotoThumbnailService photoThumbnailService;
 
@@ -53,12 +62,14 @@ public class PhotoService {
             StorageService storageService,
             PhotoRepository photoRepository,
             PhotoFolderRepository photoFolderRepository,
+            FolderShareLinkRepository folderShareLinkRepository,
             PhotoMetadataService photoMetadataService,
             PhotoThumbnailService photoThumbnailService
     ) {
         this.storageService = storageService;
         this.photoRepository = photoRepository;
         this.photoFolderRepository = photoFolderRepository;
+        this.folderShareLinkRepository = folderShareLinkRepository;
         this.photoMetadataService = photoMetadataService;
         this.photoThumbnailService = photoThumbnailService;
     }
@@ -123,6 +134,81 @@ public class PhotoService {
                 .sorted(photoComparator())
                 .map(this::toPhotoResponse)
                 .toList();
+    }
+
+    @Transactional
+    public FolderShareResponse createFolderShareLink(String ownerId, String folderPath) {
+        String normalizedOwnerId = normalizeOwnerId(ownerId);
+        String normalizedFolderPath = normalizeFolderPath(folderPath);
+
+        ensureFolderHasPhotos(normalizedOwnerId, normalizedFolderPath);
+
+        FolderShareLink shareLink = folderShareLinkRepository
+                .findByOwnerIdAndFolderPath(normalizedOwnerId, normalizedFolderPath)
+                .orElseGet(() -> folderShareLinkRepository.save(new FolderShareLink(
+                        generateShareToken(),
+                        normalizedOwnerId,
+                        normalizedFolderPath,
+                        LocalDateTime.now()
+                )));
+
+        return toFolderShareResponse(shareLink);
+    }
+
+    public SharedFolderResponse getSharedFolder(String token) {
+        FolderShareLink shareLink = findShareLink(token);
+        List<PhotoResponse> photos = getFolderPhotos(shareLink.getOwnerId(), shareLink.getFolderPath())
+                .stream()
+                .map(photo -> toSharedPhotoResponse(shareLink.getToken(), photo))
+                .toList();
+
+        return new SharedFolderResponse(shareLink.getFolderPath(), photos);
+    }
+
+    public PhotoFile getSharedPhotoFile(String token, Long id) {
+        FolderShareLink shareLink = findShareLink(token);
+        Photo photo = findSharedPhoto(shareLink, id);
+
+        Resource resource = storageService.loadAsResource(photo.getStorageKey());
+        String contentType = photo.getContentType() != null
+                ? photo.getContentType()
+                : MediaType.APPLICATION_OCTET_STREAM_VALUE;
+
+        return new PhotoFile(resource, contentType);
+    }
+
+    @Transactional
+    public PhotoFile getSharedPhotoThumbnailFile(String token, Long id) {
+        FolderShareLink shareLink = findShareLink(token);
+        Photo photo = findSharedPhoto(shareLink, id);
+
+        String thumbnailStorageKey = ensureThumbnail(photo);
+        if (thumbnailStorageKey == null) {
+            return getSharedPhotoFile(token, id);
+        }
+
+        Resource resource = storageService.loadAsResource(thumbnailStorageKey);
+        return new PhotoFile(resource, MediaType.IMAGE_JPEG_VALUE);
+    }
+
+    public String folderZipFilename(String folderPath) {
+        return safeDownloadName(normalizeFolderPath(folderPath)) + ".zip";
+    }
+
+    public String sharedFolderZipFilename(String token) {
+        FolderShareLink shareLink = findShareLink(token);
+        return folderZipFilename(shareLink.getFolderPath());
+    }
+
+    public void writeFolderZip(String ownerId, String folderPath, OutputStream outputStream) {
+        String normalizedOwnerId = normalizeOwnerId(ownerId);
+        String normalizedFolderPath = normalizeFolderPath(folderPath);
+        writePhotosZip(getFolderPhotos(normalizedOwnerId, normalizedFolderPath), outputStream);
+    }
+
+    public void writeSharedFolderZip(String token, OutputStream outputStream) {
+        FolderShareLink shareLink = findShareLink(token);
+        writePhotosZip(getFolderPhotos(shareLink.getOwnerId(), shareLink.getFolderPath()), outputStream);
     }
 
     public List<PhotoResponse> getAllPhotos() {
@@ -607,6 +693,134 @@ public class PhotoService {
                 photo.getLensModel(),
                 splitTags(photo.getTags())
         );
+    }
+
+    private PhotoResponse toSharedPhotoResponse(String token, Photo photo) {
+        return new PhotoResponse(
+                photo.getId(),
+                photo.getOwnerId(),
+                photo.getFolderPath(),
+                photo.getOriginalName(),
+                photo.getStorageKey(),
+                photo.getContentType(),
+                photo.getFileSize(),
+                "/api/share/" + token + "/view/" + photo.getId(),
+                "/api/share/" + token + "/thumbnail/" + photo.getId(),
+                photo.getCreatedAt(),
+                photo.getDeletedAt(),
+                photo.getWidth(),
+                photo.getHeight(),
+                photo.getTakenAt(),
+                photo.getCameraMake(),
+                photo.getCameraModel(),
+                photo.getFocalLength(),
+                photo.getFNumber(),
+                photo.getExposureTime(),
+                photo.getIso(),
+                photo.getLensModel(),
+                splitTags(photo.getTags())
+        );
+    }
+
+    private FolderShareResponse toFolderShareResponse(FolderShareLink shareLink) {
+        return new FolderShareResponse(
+                shareLink.getToken(),
+                shareLink.getFolderPath(),
+                "/share/" + shareLink.getToken(),
+                shareLink.getCreatedAt()
+        );
+    }
+
+    private List<Photo> getFolderPhotos(String ownerId, String folderPath) {
+        return photoRepository.findAllByOwnerIdAndFolderPathAndDeletedAtIsNull(ownerId, folderPath)
+                .stream()
+                .sorted(photoComparator())
+                .toList();
+    }
+
+    private void ensureFolderHasPhotos(String ownerId, String folderPath) {
+        if (photoRepository.countByOwnerIdAndFolderPathAndDeletedAtIsNull(ownerId, folderPath) == 0) {
+            throw new IllegalArgumentException("Folder has no photos. folderPath=" + folderPath);
+        }
+    }
+
+    private FolderShareLink findShareLink(String token) {
+        if (token == null || token.isBlank()) {
+            throw new IllegalArgumentException("Share token is required.");
+        }
+
+        return folderShareLinkRepository.findByToken(token.trim())
+                .orElseThrow(() -> new IllegalArgumentException("Share link not found."));
+    }
+
+    private Photo findSharedPhoto(FolderShareLink shareLink, Long id) {
+        Photo photo = findOwnedPhoto(shareLink.getOwnerId(), id);
+        if (!shareLink.getFolderPath().equals(normalizeFolderPath(photo.getFolderPath()))) {
+            throw new IllegalArgumentException("Photo not found. id=" + id);
+        }
+        return photo;
+    }
+
+    private String generateShareToken() {
+        byte[] bytes = new byte[24];
+        String token;
+        do {
+            SHARE_TOKEN_RANDOM.nextBytes(bytes);
+            token = Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
+        } while (folderShareLinkRepository.findByToken(token).isPresent());
+        return token;
+    }
+
+    private void writePhotosZip(List<Photo> photos, OutputStream outputStream) {
+        if (photos.isEmpty()) {
+            throw new IllegalArgumentException("Folder has no photos.");
+        }
+
+        Map<String, Integer> usedNames = new HashMap<>();
+        try (ZipOutputStream zipOutputStream = new ZipOutputStream(outputStream)) {
+            for (Photo photo : photos) {
+                String entryName = uniqueZipEntryName(photo.getOriginalName(), usedNames);
+                zipOutputStream.putNextEntry(new ZipEntry(entryName));
+                Resource resource = storageService.loadAsResource(photo.getStorageKey());
+                try (InputStream inputStream = resource.getInputStream()) {
+                    inputStream.transferTo(zipOutputStream);
+                }
+                zipOutputStream.closeEntry();
+            }
+            zipOutputStream.finish();
+        } catch (IOException e) {
+            throw new IllegalStateException("Failed to write folder ZIP.", e);
+        }
+    }
+
+    private String uniqueZipEntryName(String originalName, Map<String, Integer> usedNames) {
+        String safeName = safeDownloadName(originalName);
+        int count = usedNames.getOrDefault(safeName, 0);
+        usedNames.put(safeName, count + 1);
+        if (count == 0) {
+            return safeName;
+        }
+
+        int dotIndex = safeName.lastIndexOf('.');
+        if (dotIndex > 0) {
+            return safeName.substring(0, dotIndex) + " (" + count + ")" + safeName.substring(dotIndex);
+        }
+        return safeName + " (" + count + ")";
+    }
+
+    private String safeDownloadName(String name) {
+        if (name == null || name.isBlank()) {
+            return "download";
+        }
+
+        String safeName = name.trim()
+                .replace('\\', '_')
+                .replace('/', '_')
+                .replaceAll("[\\p{Cntrl}:*?\"<>|]+", "_")
+                .replaceAll("\\s+", " ");
+
+        safeName = safeName.replaceAll("^\\.+", "").trim();
+        return safeName.isBlank() ? "download" : safeName;
     }
 
     private Photo findOwnedPhoto(String ownerId, Long id) {

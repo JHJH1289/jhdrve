@@ -4,12 +4,22 @@ import { formatShortDate } from "../utils/photoCollection";
 
 const TEXT = {
   delete: "\uC0AD\uC81C",
+  downloadZip: "ZIP \uB2E4\uC6B4",
   empty: "\uD3F4\uB354\uAC00 \uC5C6\uC2B5\uB2C8\uB2E4.",
   menu: "\uD3F4\uB354 \uBA54\uB274",
   rename: "\uC774\uB984 \uBCC0\uACBD",
+  share: "\uACF5\uC720 \uB9C1\uD06C",
 };
 
-export default function FolderGrid({ folders, onOpenFolder, onReorder, onDeleteFolder, onRenameFolder }) {
+export default function FolderGrid({
+  folders,
+  onCreateShareLink,
+  onDownloadFolderZip,
+  onOpenFolder,
+  onReorder,
+  onDeleteFolder,
+  onRenameFolder,
+}) {
   const [draggingPath, setDraggingPath] = useState("");
   const [openMenuPath, setOpenMenuPath] = useState("");
   const suppressClickRef = useRef(false);
@@ -58,7 +68,9 @@ export default function FolderGrid({ folders, onOpenFolder, onReorder, onDeleteF
           isDragging={draggingPath === folder.folderPath}
           isMenuOpen={openMenuPath === folder.folderPath}
           onCloseMenu={closeMenu}
+          onCreateShareLink={onCreateShareLink}
           onDeleteFolder={onDeleteFolder}
+          onDownloadFolderZip={onDownloadFolderZip}
           onDropFolder={handleDrop}
           onOpenFolder={onOpenFolder}
           onRenameFolder={onRenameFolder}
@@ -76,7 +88,9 @@ const FolderItem = memo(function FolderItem({
   isDragging,
   isMenuOpen,
   onCloseMenu,
+  onCreateShareLink,
   onDeleteFolder,
+  onDownloadFolderZip,
   onDropFolder,
   onOpenFolder,
   onRenameFolder,
@@ -166,6 +180,30 @@ const FolderItem = memo(function FolderItem({
 
             {isMenuOpen && (
               <div className="folder-menu" role="menu">
+                <button
+                  type="button"
+                  className="folder-menu-item"
+                  role="menuitem"
+                  disabled={folder.photoCount === 0}
+                  onClick={() => {
+                    onCloseMenu();
+                    onCreateShareLink(folder.folderPath);
+                  }}
+                >
+                  {TEXT.share}
+                </button>
+                <button
+                  type="button"
+                  className="folder-menu-item"
+                  role="menuitem"
+                  disabled={folder.photoCount === 0}
+                  onClick={() => {
+                    onCloseMenu();
+                    onDownloadFolderZip(folder.folderPath);
+                  }}
+                >
+                  {TEXT.downloadZip}
+                </button>
                 <button
                   type="button"
                   className="folder-menu-item"

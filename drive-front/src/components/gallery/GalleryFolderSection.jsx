@@ -10,6 +10,8 @@ export default function GalleryFolderSection({
   loadingDuplicates,
   onDeleteDuplicates,
   onDeleteFolder,
+  onCreateShareLink,
+  onDownloadFolderZip,
   onOpenFolder,
   onOpenTrash,
   onRenameFolder,
@@ -71,6 +73,8 @@ export default function GalleryFolderSection({
       </div>
       <FolderGrid
         folders={folders}
+        onCreateShareLink={onCreateShareLink}
+        onDownloadFolderZip={onDownloadFolderZip}
         onOpenFolder={onOpenFolder}
         onReorder={reorderDisabled || folderSortOrder !== "newest" ? () => {} : onReorderFolders}
         onDeleteFolder={onDeleteFolder}

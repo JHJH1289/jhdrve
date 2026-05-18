@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
-import { addPhotoTags, deleteDuplicatePhotos, deleteFolder, deletePhoto, deleteTrashPhoto, emptyTrashPhotos, fetchDuplicatePhotos, fetchFolders, fetchPhotos, fetchStorageStatus, fetchTrashPhotos, removePhotoTags, renameFolder, restoreTrashPhoto, updateFolderOrder, uploadPhotos } from "../api/photoApi";
+import { addPhotoTags, createFolderShareLink, deleteDuplicatePhotos, deleteFolder, deletePhoto, deleteTrashPhoto, downloadFolderZip, emptyTrashPhotos, fetchDuplicatePhotos, fetchFolders, fetchPhotos, fetchStorageStatus, fetchTrashPhotos, removePhotoTags, renameFolder, restoreTrashPhoto, updateFolderOrder, uploadPhotos } from "../api/photoApi";
 import AdminPanel from "../components/admin/AdminPanel";
+import ConfirmModal from "../components/ConfirmModal";
 import DuplicatePhotoModal from "../components/DuplicatePhotoModal";
 import FolderRenameModal from "../components/FolderRenameModal";
 import GalleryFolderSection from "../components/gallery/GalleryFolderSection";
@@ -38,9 +39,19 @@ const TEXT = {
   tagDeleteDone: "태그 삭제 완료",
   trash: "휴지통",
   trashEmptyDone: "휴지통 비우기 완료",
+  trashEmptyConfirmMessage: "휴지통의 모든 사진을 영구 삭제할까요? 이 작업은 되돌릴 수 없습니다.",
+  trashEmptyConfirmTitle: "휴지통 비우기",
   trashPermanentDeleteDone: "영구 삭제 완료",
+  trashPermanentDeleteConfirmMessage: "사진을 영구 삭제할까요? 이 작업은 되돌릴 수 없습니다.",
+  trashPermanentDeleteConfirmTitle: "영구 삭제",
   trashRestoreDone: "복원 완료",
 };
+
+Object.assign(TEXT, {
+  folderZipDownload: "ZIP \uB2E4\uC6B4",
+  shareFolder: "\uACF5\uC720 \uB9C1\uD06C",
+  shareLinkCopied: "\uACF5\uC720 \uB9C1\uD06C\uB97C \uBCF5\uC0AC\uD588\uC2B5\uB2C8\uB2E4.",
+});
 
 const STORAGE_REFERENCE_BYTES = 400 * 1024 * 1024 * 1024;
 const MAX_UPLOAD_BYTES = 50 * 1024 * 1024 * 1024;
@@ -69,6 +80,7 @@ export default function GalleryPage({ username, role, onLogout }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [trashPhotos, setTrashPhotos] = useState([]);
   const [trashLoading, setTrashLoading] = useState(false);
+  const [trashConfirm, setTrashConfirm] = useState(null);
   const [storageStatus, setStorageStatus] = useState({
     usedBytes: 0,
     limitBytes: STORAGE_REFERENCE_BYTES,
@@ -335,6 +347,26 @@ export default function GalleryPage({ username, role, onLogout }) {
     }
   }
 
+  async function handleCreateShareLink(folderPath) {
+    try {
+      const result = await createFolderShareLink(folderPath);
+      const sharePath = result.shareUrl || `/share/${result.token}`;
+      const shareUrl = new URL(sharePath, window.location.origin).toString();
+      await copyText(shareUrl);
+      showNotice(TEXT.shareLinkCopied);
+    } catch (error) {
+      showNotice(`\uACF5\uC720 \uB9C1\uD06C \uC0DD\uC131 \uC2E4\uD328: ${error.message}`, "error");
+    }
+  }
+
+  async function handleDownloadFolderZip(folderPath) {
+    try {
+      await downloadFolderZip(folderPath);
+    } catch (error) {
+      showNotice(`ZIP \uB2E4\uC6B4\uB85C\uB4DC \uC2E4\uD328: ${error.message}`, "error");
+    }
+  }
+
   async function loadTrashPhotos() {
     try {
       setTrashLoading(true);
@@ -375,9 +407,7 @@ export default function GalleryPage({ username, role, onLogout }) {
     }
   }
 
-  async function handleDeleteTrashPhoto(id) {
-    if (!window.confirm("사진을 영구 삭제할까요? 이 작업은 되돌릴 수 없습니다.")) return;
-
+  async function deleteTrashPhotoPermanently(id) {
     try {
       setTrashLoading(true);
       await deleteTrashPhoto(id);
@@ -391,9 +421,7 @@ export default function GalleryPage({ username, role, onLogout }) {
     }
   }
 
-  async function handleEmptyTrash() {
-    if (!window.confirm("휴지통을 비울까요? 이 작업은 되돌릴 수 없습니다.")) return;
-
+  async function emptyTrashPermanently() {
     try {
       setTrashLoading(true);
       await emptyTrashPhotos();
@@ -405,6 +433,26 @@ export default function GalleryPage({ username, role, onLogout }) {
     } finally {
       setTrashLoading(false);
     }
+  }
+
+  function handleDeleteTrashPhoto(id) {
+    setTrashConfirm({ type: "delete", id });
+  }
+
+  function handleEmptyTrash() {
+    setTrashConfirm({ type: "empty" });
+  }
+
+  async function handleConfirmTrashAction() {
+    if (!trashConfirm || trashLoading) return;
+
+    if (trashConfirm.type === "delete") {
+      await deleteTrashPhotoPermanently(trashConfirm.id);
+    } else {
+      await emptyTrashPermanently();
+    }
+
+    setTrashConfirm(null);
   }
 
   function handleLogoutClick() {
@@ -645,8 +693,10 @@ export default function GalleryPage({ username, role, onLogout }) {
                 toolsOpen={folderToolsOpen}
                 deletingDuplicates={deletingDuplicates}
                 loadingDuplicates={loadingDuplicates}
+                onCreateShareLink={handleCreateShareLink}
                 onDeleteDuplicates={handleDeleteDuplicates}
                 onDeleteFolder={handleDeleteFolder}
+                onDownloadFolderZip={handleDownloadFolderZip}
                 onOpenFolder={setSelectedFolder}
                 onOpenTrash={openTrash}
                 onRenameFolder={setRenamingFolder}
@@ -664,8 +714,10 @@ export default function GalleryPage({ username, role, onLogout }) {
                 sortOrder={photoSortOrder}
                 onAddPhotoTags={handleAddPhotoTags}
                 onBack={closeFolder}
+                onCreateShareLink={handleCreateShareLink}
                 onDeletePhotoTags={handleDeletePhotoTags}
                 onDeletePhotos={handleDeletePhotos}
+                onDownloadFolderZip={handleDownloadFolderZip}
                 onOpenPhoto={openViewer}
                 onSearchChange={(value) => {
                   setPhotoSearch(value);
@@ -721,6 +773,17 @@ export default function GalleryPage({ username, role, onLogout }) {
           onDelete={handleConfirmDeleteDuplicates}
         />
 
+        <ConfirmModal
+          open={Boolean(trashConfirm)}
+          title={trashConfirm?.type === "empty" ? TEXT.trashEmptyConfirmTitle : TEXT.trashPermanentDeleteConfirmTitle}
+          message={trashConfirm?.type === "empty" ? TEXT.trashEmptyConfirmMessage : TEXT.trashPermanentDeleteConfirmMessage}
+          confirmLabel={trashConfirm?.type === "empty" ? TEXT.trashEmptyConfirmTitle : TEXT.trashPermanentDeleteConfirmTitle}
+          danger
+          loading={trashLoading}
+          onClose={() => setTrashConfirm(null)}
+          onConfirm={handleConfirmTrashAction}
+        />
+
       </div>
     </div>
   );
@@ -740,5 +803,22 @@ function formatBytes(value) {
   }
 
   return `${size.toFixed(size >= 10 ? 1 : 2)} ${units[unitIndex]}`;
+}
+
+async function copyText(value) {
+  if (navigator.clipboard?.writeText) {
+    await navigator.clipboard.writeText(value);
+    return;
+  }
+
+  const input = document.createElement("textarea");
+  input.value = value;
+  input.setAttribute("readonly", "");
+  input.style.position = "fixed";
+  input.style.opacity = "0";
+  document.body.appendChild(input);
+  input.select();
+  document.execCommand("copy");
+  input.remove();
 }
 

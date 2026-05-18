@@ -1,6 +1,6 @@
 import AuthImage from "../AuthImage";
 
-export default function AdminFolderList({ labels, folders, groupedFolders, status, onDeleteFolder }) {
+export default function AdminFolderList({ labels, folders, groupedFolders, status, onDeleteFolder, onOpenFolder }) {
   if (folders.length === 0 && !status) {
     return <p className="admin-empty">{labels.empty}</p>;
   }
@@ -16,9 +16,17 @@ export default function AdminFolderList({ labels, folders, groupedFolders, statu
           <div className="admin-folder-grid">
             {ownerFolders.map((folder) => (
               <article className="admin-folder-card" key={`${folder.ownerId}-${folder.folderPath}`}>
-                <FolderPreview images={folder.previewImageUrls} />
+                <button
+                  type="button"
+                  className="admin-folder-open-btn"
+                  onClick={() => onOpenFolder(folder)}
+                >
+                  <FolderPreview images={folder.previewImageUrls} />
+                </button>
                 <div className="admin-folder-meta">
-                  <h3>{folder.folderPath}</h3>
+                  <button type="button" onClick={() => onOpenFolder(folder)}>
+                    <h3>{folder.folderPath}</h3>
+                  </button>
                 </div>
                 <button
                   type="button"

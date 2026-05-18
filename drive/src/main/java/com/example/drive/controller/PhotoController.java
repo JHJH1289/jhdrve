@@ -5,6 +5,7 @@ import com.example.drive.dto.FolderCreateRequest;
 import com.example.drive.dto.FolderOrderUpdateRequest;
 import com.example.drive.dto.FolderRenameRequest;
 import com.example.drive.dto.FolderResponse;
+import com.example.drive.dto.FolderShareResponse;
 import com.example.drive.dto.PhotoResponse;
 import com.example.drive.dto.PhotoTagUpdateRequest;
 import com.example.drive.dto.PhotoUploadBatchResponse;
@@ -15,6 +16,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
+import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -27,6 +29,8 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 import java.util.Map;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 
 @RestController
 @RequestMapping("/api/photos")
@@ -111,6 +115,29 @@ public class PhotoController {
     ) {
         String username = authentication.getName();
         return ResponseEntity.ok(photoService.updateFolderOrder(username, request.getFolderPaths()));
+    }
+
+    @PostMapping("/folders/share")
+    public ResponseEntity<FolderShareResponse> createFolderShareLink(
+            Authentication authentication,
+            @RequestBody FolderCreateRequest request
+    ) {
+        String username = authentication.getName();
+        return ResponseEntity.ok(photoService.createFolderShareLink(username, request.getFolderPath()));
+    }
+
+    @GetMapping("/folders/download")
+    public ResponseEntity<StreamingResponseBody> downloadFolder(
+            Authentication authentication,
+            @RequestParam(value = "folderPath", required = false) String folderPath
+    ) {
+        String username = authentication.getName();
+        String filename = photoService.folderZipFilename(folderPath);
+
+        return ResponseEntity.ok()
+                .contentType(MediaType.parseMediaType("application/zip"))
+                .header(HttpHeaders.CONTENT_DISPOSITION, contentDisposition(filename))
+                .body(outputStream -> photoService.writeFolderZip(username, folderPath, outputStream));
     }
 
     @DeleteMapping("/{id}")
@@ -225,5 +252,10 @@ public class PhotoController {
         return authentication.getAuthorities()
                 .stream()
                 .anyMatch(authority -> "ROLE_ADMIN".equals(authority.getAuthority()));
+    }
+
+    private String contentDisposition(String filename) {
+        String encodedFilename = URLEncoder.encode(filename, StandardCharsets.UTF_8).replace("+", "%20");
+        return "attachment; filename=\"download.zip\"; filename*=UTF-8''" + encodedFilename;
     }
 }

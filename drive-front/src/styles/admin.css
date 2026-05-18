@@ -24,16 +24,6 @@
   font-size: 13px;
 }
 
-.admin-panel-header span {
-  flex: 0 0 auto;
-  border-radius: 999px;
-  background: var(--accent-soft);
-  color: #21472b;
-  font-size: 13px;
-  font-weight: 800;
-  padding: 7px 10px;
-}
-
 .admin-empty {
   margin-top: 24px;
   color: var(--muted);
@@ -82,6 +72,18 @@
   padding: 12px;
 }
 
+.admin-folder-open-btn {
+  display: block;
+  width: 100%;
+  border-radius: 10px;
+  background: transparent;
+  padding: 0;
+}
+
+.admin-folder-open-btn:hover {
+  background: transparent;
+}
+
 .admin-folder-preview {
   overflow: hidden;
   aspect-ratio: 4 / 3;
@@ -106,5 +108,102 @@
   color: var(--text);
   font-size: 16px;
   overflow-wrap: anywhere;
+}
+
+.admin-folder-meta button {
+  width: 100%;
+  background: transparent;
+  color: inherit;
+  padding: 0;
+  text-align: left;
+}
+
+.admin-folder-meta button:hover {
+  background: transparent;
+}
+
+.admin-photo-folder-view {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 16px;
+  margin-top: 22px;
+}
+
+.admin-photo-folder-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 14px;
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 14px;
+}
+
+.admin-photo-folder-header .back-btn {
+  flex: 0 0 auto;
+  margin-bottom: 0;
+}
+
+.admin-photo-folder-header div {
+  min-width: 0;
+  text-align: right;
+}
+
+.admin-photo-folder-header span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.admin-photo-folder-header h3 {
+  margin: 4px 0 0;
+  color: #204b2b;
+  font-size: 22px;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+
+.admin-photo-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 8px;
+}
+
+.admin-photo-card {
+  position: relative;
+  display: block;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #edf2ee;
+  color: #ffffff;
+  padding: 0;
+  text-align: left;
+}
+
+.admin-photo-card:hover {
+  border-color: #7dab88;
+}
+
+.admin-photo-image {
+  display: block;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  background: #edf2ee;
+  object-fit: cover;
+}
+
+.admin-photo-card span {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  overflow-wrap: anywhere;
+  background: linear-gradient(180deg, transparent, rgba(0, 0, 0, 0.68));
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.25;
+  padding: 24px 9px 8px;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.48);
 }
 

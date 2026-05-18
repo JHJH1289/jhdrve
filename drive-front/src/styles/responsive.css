@@ -205,12 +205,21 @@
   }
 
   .photo-folder-header {
-    align-items: stretch;
-    flex-direction: column;
+    align-items: center;
+    flex-direction: row;
+  }
+
+  .photo-folder-tools {
+    flex: 0 0 auto;
+    margin-left: auto;
   }
 
   .photo-sort-control {
     justify-content: space-between;
+  }
+
+  .photo-folder-menu {
+    right: 0;
   }
 
   .folder-open-btn {
@@ -418,8 +427,43 @@
     flex-direction: column;
   }
 
+  .confirm-modal-actions {
+    flex-direction: column-reverse;
+  }
+
+  .confirm-modal-actions button {
+    width: 100%;
+  }
+
   .upload-fab.floating {
     right: 18px;
     bottom: 18px;
+  }
+
+  .shared-shell {
+    width: min(100%, calc(100vw - 24px));
+    padding: 12px 0 18px;
+  }
+
+  .shared-panel {
+    border-radius: 16px;
+    padding: 16px;
+  }
+
+  .shared-header {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .shared-title-block h1 {
+    font-size: 24px;
+  }
+
+  .shared-download-btn {
+    width: 100%;
+  }
+
+  .shared-photo-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
