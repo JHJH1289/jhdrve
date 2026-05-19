@@ -1,0 +1,91 @@
+8000번 외부 접속 재설정 메모
+작성일: 2026-05-19
+
+목표
+- drive-front Vite 개발 서버를 8000번 포트로 실행한다.
+- Cloudflare Tunnel이 vinylunderground.art, www.vinylunderground.art 요청을 localhost:8000으로 전달하게 한다.
+
+1. 프론트 개발 서버 실행
+PowerShell에서 실행:
+
+cd D:\code\drive\drive-front
+npm run dev -- --host 0.0.0.0 --port 8000
+
+백그라운드로 실행할 때:
+
+Start-Process -FilePath npm.cmd -ArgumentList @('run','dev','--','--host','0.0.0.0','--port','8000') -WorkingDirectory 'D:\code\drive\drive-front' -WindowStyle Hidden
+
+확인:
+
+netstat -ano | Select-String ':8000'
+Invoke-WebRequest -UseBasicParsing -Uri http://localhost:8000
+
+정상 상태:
+- 0.0.0.0:8000 LISTENING 이 보여야 한다.
+- http://localhost:8000 요청이 StatusCode 200을 반환해야 한다.
+
+2. Cloudflare Tunnel 설정 파일 확인
+설정 파일:
+
+C:\Users\Admin\.cloudflared\config.yml
+
+현재 필요한 내용:
+
+tunnel: e5027e9f-59c3-4680-a437-b30ae16e93d6
+credentials-file: C:\Users\Admin\.cloudflared\e5027e9f-59c3-4680-a437-b30ae16e93d6.json
+protocol: http2
+
+ingress:
+  - hostname: vinylunderground.art
+    service: http://localhost:8000
+  - hostname: www.vinylunderground.art
+    service: http://localhost:8000
+  - service: http_status:404
+
+5173으로 되어 있으면 8000으로 바꾼다.
+
+3. Cloudflare Tunnel 재시작
+PowerShell에서 실행:
+
+$process = Get-Process cloudflared -ErrorAction SilentlyContinue | Select-Object -First 1
+if ($process) { Stop-Process -Id $process.Id -Force }
+$exe = 'C:\Users\Admin\AppData\Local\Microsoft\WinGet\Packages\Cloudflare.cloudflared_Microsoft.Winget.Source_8wekyb3d8bbwe\cloudflared.exe'
+if (!(Test-Path -LiteralPath $exe)) { $exe = (Get-Command cloudflared.exe -ErrorAction Stop).Source }
+Start-Process -FilePath $exe -ArgumentList @('tunnel','run','e5027e9f-59c3-4680-a437-b30ae16e93d6') -WindowStyle Hidden -RedirectStandardOutput 'D:\code\drive\cloudflared.out.log' -RedirectStandardError 'D:\code\drive\cloudflared.err.log'
+
+확인:
+
+Get-Process cloudflared
+Get-Content D:\code\drive\cloudflared.err.log -Tail 40
+
+정상 상태:
+- cloudflared 프로세스가 떠 있어야 한다.
+- 로그에 Registered tunnel connection 이 여러 줄 보여야 한다.
+
+4. DNS 라우팅이 꼬였을 때
+필요하면 아래를 다시 실행한다:
+
+cloudflared tunnel route dns e5027e9f-59c3-4680-a437-b30ae16e93d6 vinylunderground.art
+cloudflared tunnel route dns e5027e9f-59c3-4680-a437-b30ae16e93d6 www.vinylunderground.art
+
+5. 방화벽
+Cloudflare Tunnel 방식은 보통 로컬 8000번을 인터넷에 직접 열 필요는 없지만, 같은 네트워크나 직접 IP 접속도 허용하려면 관리자 권한 PowerShell에서 실행:
+
+netsh advfirewall firewall add rule name="Drive Front Vite 8000" dir=in action=allow protocol=TCP localport=8000
+
+이번 실행에서는 일반 권한에서 이 명령이 "Run as administrator" 필요로 실패했다.
+
+6. 현재 확인된 상태
+- Vite 8000번 리스너: 확인됨
+- localhost:8000 HTTP 200: 확인됨
+- cloudflared 프로세스: 확인됨
+- cloudflared Registered tunnel connection 로그: 확인됨
+- C:\Users\Admin\.cloudflared\config.yml: localhost:8000으로 변경됨
+- Windows 방화벽 규칙 추가: 관리자 권한 필요
+
+문제 생길 때 빠른 체크 순서
+1. netstat -ano | Select-String ':8000'
+2. Invoke-WebRequest -UseBasicParsing -Uri http://localhost:8000
+3. Get-Process cloudflared
+4. Get-Content D:\code\drive\cloudflared.err.log -Tail 40
+5. Get-Content C:\Users\Admin\.cloudflared\config.yml
