@@ -1,0 +1,74 @@
+8000번 프론트 서빙 켜는 법
+
+목표
+- drive-front/dist 빌드 결과물을 8000번 포트로 서빙한다.
+- /api 요청은 백엔드 http://localhost:8080 으로 프록시한다.
+- 별도 에러 로그 파일을 만들지 않고, 현재 터미널 창에 로그를 바로 출력한다.
+
+1. 백엔드가 켜져 있는지 확인
+
+새 PowerShell에서:
+
+cd D:\code\drive\drive
+.\gradlew.bat bootRun
+
+백엔드가 이미 켜져 있으면 이 단계는 생략해도 된다.
+
+2. 프론트 빌드
+
+새 PowerShell에서:
+
+cd D:\code\drive\drive-front
+npm.cmd run build
+
+3. 8000번 서빙 시작
+
+같은 PowerShell에서:
+
+node .\serve-8000.cjs
+
+정상 출력 예:
+
+Drive frontend listening on http://0.0.0.0:8000
+Proxying /api to http://localhost:8080
+
+이 터미널 창을 닫으면 8000번 서빙도 꺼진다.
+
+4. 접속 주소
+
+로컬:
+
+http://localhost:8000
+
+외부 IP:
+
+http://210.119.14.72:8000
+
+도메인:
+
+http://jdrive.서버.한국:8000
+
+5. 켜졌는지 확인
+
+다른 PowerShell에서:
+
+netstat -ano | Select-String ':8000'
+
+또는:
+
+Invoke-WebRequest -UseBasicParsing -Uri http://localhost:8000
+
+6. 끄는 법
+
+8000번 서빙 중인 PowerShell 창에서 Ctrl+C를 누른다.
+
+7. 참고
+
+Vite 개발 서버로 직접 8000번을 켤 수도 있다:
+
+cd D:\code\drive\drive-front
+npm.cmd run dev -- --host 0.0.0.0 --port 8000
+
+다만 외부 공개용으로는 빌드 후 아래 명령을 쓰는 쪽이 더 단순하다:
+
+node .\serve-8000.cjs
